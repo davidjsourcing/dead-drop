@@ -47,7 +47,8 @@ export function normalizeAnswer(answer: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
+    .trim()
+    .replace(/^(a|an|the) (?=\S)/, ""); // "a clock", "the clock" and "clock" are the same answer
 }
 
 export function keypairFromSecrets(ownerSecret: Uint8Array, viewSecret: Uint8Array): Keypair {

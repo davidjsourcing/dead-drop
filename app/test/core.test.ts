@@ -11,13 +11,16 @@ const salt = Uint8Array.from({ length: 16 }, (_, i) => i + 1);
 
 describe("answers", () => {
   it("normalise case, accents, spacing and punctuation", () => {
-    expect(normalizeAnswer("  A  Shadow! ")).toBe("a shadow");
+    expect(normalizeAnswer("  A  Shadow! ")).toBe("shadow");
     expect(normalizeAnswer("Ćémetery")).toBe("cemetery");
-    expect(normalizeAnswer("the-raven")).toBe("the raven");
+    expect(normalizeAnswer("the-raven")).toBe("raven");
+    expect(normalizeAnswer("An echo")).toBe("echo");
+    expect(normalizeAnswer("theatre")).toBe("theatre"); // only a whole leading article is dropped
+    expect(normalizeAnswer("a")).toBe("a");
   });
   it("derive the same key for equivalent answers and a different key for a different answer or salt", () => {
     const a = deriveAnswerKeys("A shadow", salt, FAST);
-    const b = deriveAnswerKeys("a SHADOW.", salt, FAST);
+    const b = deriveAnswerKeys("SHADOW.", salt, FAST);
     const c = deriveAnswerKeys("a ghost", salt, FAST);
     const d = deriveAnswerKeys("A shadow", Uint8Array.from({ length: 16 }, () => 9), FAST);
     expect(a.address).toBe(b.address);

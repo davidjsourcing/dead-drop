@@ -6,4 +6,7 @@ app/.e2e/keys.json
 app/.e2e/coins.json
 app/.e2e/pending-return.json
 *.log
+app/.e2e/hunt.json
+app/.e2e/drops.json
+app/.e2e/deployment.json
 app/.e2e/hunt-graves.json

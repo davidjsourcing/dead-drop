@@ -18,3 +18,6 @@ export const DEPLOYMENT = {
   /** µT per summoning; must match the crypt's on-chain dose (set_dose). */
   dose: 2n * 1_000_000n,
 };
+
+/** The Halloween hunt starts at this grave in the crypt's graveyard (each secret names the next grave). */
+export const HUNT_START_GRAVE = 4;

@@ -1,10 +1,10 @@
 import "./styles.css";
 import qrcode from "qrcode-generator";
-import { DEPLOYMENT, MICRO } from "./core/net";
+import { DEPLOYMENT, MICRO, HUNT_START_GRAVE } from "./core/net";
 import { ghost, coins, addCoin, removeCoins, balance, pickCoins, drops, saveDrop, exportGhost, type MyDrop } from "./core/ghost";
 import { decodeLink, encodeLink, type DropLink } from "./core/link";
 import { bury, peek, raise, returnDrop, summon, postGrave, type Peek } from "./core/flows";
-import { currentEpoch, getUtxoRaw, listGraves } from "./core/chain";
+import { currentEpoch, getUtxoRaw, listGraves, cryptStats, cauldronBalance } from "./core/chain";
 import { EPOCH_MINUTES } from "./core/time";
 import { icon } from "./icons";
 
@@ -29,6 +29,14 @@ function tombstone(epitaph: string, sub = "weight: sealed · amount hidden") {
   return `<div class="tomb"><div class="cross"></div><div class="rip">R · I · P</div><div class="epitaph">${esc(epitaph)}</div><div class="weight">${esc(sub)}</div></div><div class="ground"></div>`;
 }
 
+async function fillStats() {
+  try {
+    const [s, bal] = await Promise.all([cryptStats(DEPLOYMENT.crypt), cauldronBalance(DEPLOYMENT.cauldron)]);
+    const el = document.getElementById("stats"); if (!el) return;
+    const b = el.querySelectorAll("b"); b[0].textContent = String(s.graves); b[1].textContent = String(s.summonings); b[2].textContent = fmt(bal);
+  } catch { /* the strip just keeps its placeholders */ }
+}
+
 function home() {
   app.innerHTML = `
   <div class="hero">
@@ -43,6 +51,8 @@ function home() {
       ${tombstone("What has roots nobody sees, and is taller than trees?", "weight: hidden · owner: unlinkable")}
       <div class="candles"><span></span><span></span><span></span></div></div>
   </div>
+  <div class="stats" id="stats" aria-live="polite"><div><b>…</b><span>graves dug</span></div><div><b>…</b><span>ghosts summoned</span></div><div><b>…</b><span>tTARI in the cauldron</span></div><div><b>live</b><span>on Esmeralda testnet</span></div></div>
+  <a class="hunt" href="#/graveyard"><span class="k">The Halloween hunt</span><span>Three graves. Each secret names the next. Start at grave #${HUNT_START_GRAVE} →</span></a>
   <section>
     <div class="eyebrow">Six spells, one output</div>
     <h2>How the dead keep secrets</h2>
@@ -64,6 +74,7 @@ function home() {
       <li><span><b>They raise it.</b> One transaction moves it to their own ghost. The chain learns a one-time key signed. That's all.</span></li>
     </ol>
   </section>`;
+  void fillStats();
 }
 
 function buryView() {
@@ -234,6 +245,8 @@ async function graveyardView() {
     return `<a class="grave" href="#/d/${encodeURIComponent(g.link)}" style="text-decoration:none;color:inherit"><div class="ep">“${esc(g.epitaph)}”</div><div><span class="pill ${state === "raised" ? "raised" : "sealed"}">${state === "raised" ? "EMPTY" : "SEALED"}</span></div><div class="meta" style="margin-top:10px">grave #${g.id} · dug at epoch ${g.epoch}</div></a>`;
   }));
   $("#graves").innerHTML = cards.join("");
+  const start = graves.find((g) => g.id === HUNT_START_GRAVE);
+  if (start) $("#graves").insertAdjacentHTML("beforebegin", `<a class="hunt" href="#/d/${encodeURIComponent(start.link)}"><span class="k">The Halloween hunt</span><span>Three graves, chained: each secret names the next. Start at grave #${start.id} →</span></a>`);
 }
 
 async function xrayView(commitment?: string) {

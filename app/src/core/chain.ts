@@ -133,3 +133,9 @@ export async function cryptStats(crypt: string): Promise<{ dose: bigint; cap: bi
   const s: any[] = j?.substate?.Component?.body?.state ?? [];
   return { dose: BigInt(s[1] ?? 0), cap: BigInt(s[2] ?? 0), summonings: Number(s[5] ?? 0), graves: Number(s[6] ?? 0), fed: BigInt(s[7] ?? 0) };
 }
+
+/** tTARI waiting in the cauldron (µT), read from the crypt's vault. */
+export async function cauldronBalance(vault: string): Promise<bigint> {
+  const j = await (await fetch(`${INDEXER_URL}/substates/${vault}`)).json();
+  return BigInt(j?.substate?.Vault?.resource_container?.Stealth?.revealed_amount ?? 0);
+}
