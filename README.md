@@ -4,9 +4,10 @@
 
 Dead Drop hides a message *and* some tTARI inside a single stealth output on the Tari Ootle. Nobody watching the chain can see how much is in it, who it's for, or what it says. You share a link with a riddle on it. Whoever answers the riddle can read the secret in their browser and raise the tTARI into their own wallet. If nobody answers in time, it comes back to you.
 
-- **Play it:** {{APP_URL}} (Esmeralda testnet, nothing to install; the crypt gives your browser ghost its first tTARI)
-- **Watch it (2:30):** {{VIDEO_URL}}
-- **Template on Esmeralda:** `{{TEMPLATE}}` · **Crypt component:** `{{CRYPT}}`
+- **Play it:** https://dead-drop.sites.tab.bot/ (Esmeralda testnet, nothing to install; the crypt gives your browser ghost its first tTARI)
+- **Watch it (1:55):** {{VIDEO_URL}}
+- **Template on Esmeralda:** `57d02c26b94121ce11a8ad9b93e9ac19e8acea190b5d12f16a6e420e41c25bd7` · **Crypt component:** `component_2ef70ea3131676f968c035d6162f4d1dfd5894d1dfae4fd700d3e2a2f669d479`
+- **Tests:** 14 template engine tests, 15 unit tests, 23 live Esmeralda checks; see [TEST-REPORT.md](TEST-REPORT.md)
 - Built for the Tari October 2026 build contest, "Spooky Secrets". MIT licensed.
 
 ## What makes it private: five Ootle features, one output
@@ -76,4 +77,4 @@ Tests and the latest live run are in [TEST-REPORT.md](../TEST-REPORT.md).
 
 ## Credits & honesty
 
-Built by David J. I used an AI coding agent for much of the legwork (reading the Ootle docs and SDK, drafting code and tests); I directed the design and checked everything on the live testnet. Testnet tTARI has no value. MIT licence.
+Built by David J with an AI coding agent, which read the Ootle docs and SDK and wrote most of the code and tests; every claim here was checked on the live testnet (TEST-REPORT.md). The demo video's narration is an AI voice. Testnet tTARI has no value. MIT licence.
