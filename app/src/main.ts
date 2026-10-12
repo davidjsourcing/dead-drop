@@ -89,6 +89,7 @@ function buryView() {
         <div><label for="amount">Offering <small>tTARI, hidden</small></label><input id="amount" type="number" min="0.1" step="0.1" value="1" required /></div>
         <div><label for="returns">Returns to you after</label><select id="returns"><option value="2">${human(2)}</option><option value="24" selected>${human(24)}</option><option value="72">${human(72)}</option></select></div>
       </div>
+      ${balance() === 0n ? `<p class="hint">New here? Your ghost's first ${fmt(DEPLOYMENT.dose)} tTARI come from the crypt when you bury, so offer up to ${fmt(DEPLOYMENT.dose - 100_000n)}.</p>` : ""}
       <label for="riddle">The riddle <small>public, carved on the stone</small></label>
       <input id="riddle" maxlength="160" required placeholder="I have keys but open no locks. What am I?" />
       <label for="answer">The answer <small>never leaves this browser</small></label>
@@ -111,6 +112,9 @@ function buryView() {
     try {
       const amount = BigInt(Math.round(parseFloat($<HTMLInputElement>("#amount").value) * 1e6));
       const g = ghost();
+      if (balance() < amount + 50_000n && balance() + DEPLOYMENT.dose - 20_000n < amount + 50_000n) {
+        throw new Error(`Your ghost holds ${fmt(balance())} tTARI and the crypt's dose is ${fmt(DEPLOYMENT.dose)}. Offer ${fmt(balance() + DEPLOYMENT.dose - 100_000n)} or less.`);
+      }
       if (balance() < amount + 50_000n) {
         // A newcomer's first move is funded by the crypt itself: no wallet, no faucet.
         status.textContent = "your ghost is empty: summoning a dose from the crypt…";
@@ -171,7 +175,7 @@ function buriedView(linkStr: string) {
     <div class="panel">
       <div class="eyebrow">It's in the ground</div>
       <h2>Share the grave</h2>
-      <p class="lede" style="font-size:17px">Send this link to whoever should answer. It carries only public parameters — the answer stays with you. Unraised by epoch ${link.returnsAt} (${human(link.returnsAt - 0 > 0 ? 0 : 0) && ""}about the time you chose), it can come back to you from <a href="#/mine">My drops</a>.</p>
+      <p class="lede" style="font-size:17px">Send this link to whoever should answer. It carries only public parameters — the answer stays with you. Still unraised after epoch ${link.returnsAt} (about the time you chose), it can come back to you from <a href="#/mine">My drops</a>.</p>
       <div class="linkbox"><input id="lnk" readonly value="${esc(url)}" /><button class="btn ghost" id="copy">Copy</button></div>
       <div style="display:flex;gap:20px;align-items:center;margin-top:18px"><div class="qr">${qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true })}</div>
       <p class="hint">${link.grave ? `Carved in the public graveyard as grave #${link.grave}.` : "Private grave: only people with the link can find it."}<br/><br/><a href="#/xray/${link.commitment}">X-ray this drop →</a></p></div>
@@ -241,7 +245,7 @@ async function graveyardView() {
   if (!graves.length) { $("#graves").innerHTML = `<p class="hint">No graves yet. <a href="#/bury">Dig the first one.</a></p>`; return; }
   const cards = await Promise.all(graves.map(async (g) => {
     const live = await getUtxoRaw(g.commitment).catch(() => null);
-    const state = live ? (epoch >= g.returns ? "returnable" : "sealed") : "raised";
+    const state = live ? (epoch > g.returns ? "returnable" : "sealed") : "raised";
     return `<a class="grave" href="#/d/${encodeURIComponent(g.link)}" style="text-decoration:none;color:inherit"><div class="ep">“${esc(g.epitaph)}”</div><div><span class="pill ${state === "raised" ? "raised" : "sealed"}">${state === "raised" ? "EMPTY" : "SEALED"}</span></div><div class="meta" style="margin-top:10px">grave #${g.id} · dug at epoch ${g.epoch}</div></a>`;
   }));
   $("#graves").innerHTML = cards.join("");
@@ -284,10 +288,15 @@ async function mineView() {
   const list = drops(); const epoch = await currentEpoch().catch(() => 0);
   app.innerHTML = `<div class="eyebrow">Kept in this browser only</div><h2>My drops</h2>${list.length ? "" : `<p class="lede">Nothing buried yet. <a href="#/bury">Dig your first grave.</a></p>`}
   <table class="my"><thead><tr><th>Riddle</th><th>Offering</th><th>Returns at</th><th>Status</th><th></th></tr></thead><tbody>
-  ${list.map((d, i) => `<tr><td>“${esc(d.riddle)}”</td><td>${fmt(BigInt(d.amount))}</td><td>epoch ${d.returnsAt}</td><td><span class="pill ${d.status === "buried" ? "sealed" : d.status}" data-i="${i}">${d.status}</span></td><td><a href="#/buried/${encodeURIComponent(d.linkStr)}">link</a> · <a href="#/xray/${decodeLink(d.linkStr).commitment}">x-ray</a>${d.status === "buried" && epoch >= d.returnsAt ? ` · <button class="btn ghost" data-ret="${i}" style="padding:6px 10px">Take it back</button>` : ""}</td></tr>`).join("")}
-  </tbody></table><p class="hint">Current epoch: ${epoch}. A drop can be taken back once the current epoch reaches its return epoch.</p>`;
+  ${list.map((d, i) => `<tr><td>“${esc(d.riddle)}”</td><td>${fmt(BigInt(d.amount))}</td><td>epoch ${d.returnsAt}</td><td><span class="pill ${d.status === "buried" ? "sealed" : d.status}" data-i="${i}">${d.status}</span></td><td><a href="#/buried/${encodeURIComponent(d.linkStr)}">link</a> · <a href="#/xray/${decodeLink(d.linkStr).commitment}">x-ray</a>${d.status === "buried" && epoch > d.returnsAt ? ` · <button class="btn ghost" data-ret="${i}" style="padding:6px 10px">Take it back</button>` : ""}</td></tr>`).join("")}
+  </tbody></table><p class="hint">Current epoch: ${epoch}. A drop can be taken back once the current epoch is past its return epoch (the network enforces <code>AfterEpoch</code> strictly).</p>`;
   for (const d of list.filter((d) => d.status === "buried")) {
-    getUtxoRaw(decodeLink(d.linkStr).commitment).then((raw) => { if (!raw) saveDrop({ ...d, status: "raised" }); }).catch(() => {});
+    getUtxoRaw(decodeLink(d.linkStr).commitment).then((raw) => {
+      if (raw) return;
+      saveDrop({ ...d, status: "raised" });
+      const pill = app.querySelector<HTMLElement>(`.pill[data-i="${list.indexOf(d)}"]`);
+      if (pill) { pill.className = "pill raised"; pill.textContent = "raised"; pill.closest("tr")?.querySelector("[data-ret]")?.remove(); }
+    }).catch(() => {});
   }
   app.querySelectorAll<HTMLButtonElement>("[data-ret]").forEach((b) => b.addEventListener("click", async () => {
     const d = list[Number(b.dataset.ret)]; b.disabled = true;

@@ -1,0 +1,19 @@
+[
+  {
+    "t": "2026-10-12T06:28:06.851Z",
+    "step": "return: epochs",
+    "ok": true,
+    "data": {
+      "now": 12161,
+      "returnsAt": 12161
+    }
+  },
+  {
+    "t": "2026-10-12T06:28:08.177Z",
+    "step": "return: refused before the deadline (timelock leaf)",
+    "ok": true,
+    "data": {
+      "error": "the network would reject this: {\"ExecutionFailure\":{\"code\":\"InvalidProof\",\"message\":\"At instruction #1: Spend condition not met: builtin predicate not satisfied: AfterEpoch(12161)\"}}"
+    }
+  }
+]
