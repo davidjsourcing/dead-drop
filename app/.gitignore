@@ -1,0 +1,5 @@
+node_modules
+dist
+.e2e/keys.json
+.e2e/coins.json
+.e2e/pending-return.json

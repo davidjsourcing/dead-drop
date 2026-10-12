@@ -1,0 +1,9 @@
+node_modules/
+app/dist/
+target/
+template/target/
+app/.e2e/keys.json
+app/.e2e/coins.json
+app/.e2e/pending-return.json
+*.log
+app/.e2e/hunt-graves.json

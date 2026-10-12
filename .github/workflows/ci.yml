@@ -1,0 +1,25 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  template:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: template } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown, components: "clippy, rustfmt" }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: template }
+      - run: cargo fmt --check
+      - run: cargo build --release --target wasm32-unknown-unknown
+      - run: cargo test
+  app:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: app/package-lock.json }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

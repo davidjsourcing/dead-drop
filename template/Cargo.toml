@@ -1,0 +1,31 @@
+[package]
+name = "dead_drop"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Dead Drop: bury a secret on Tari Ootle. The Crypt component onboards ghosts (stealth tTARI), keeps a public graveyard of epitaphs, and ships a witching-hour spend script."
+
+[dependencies]
+tari_template_lib = "0.34"
+
+[dev-dependencies]
+tari_template_test_tooling = "0.45"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev.package.wasmer]
+opt-level = 2
+[profile.dev.package.wasmer-compiler]
+opt-level = 2
+[profile.dev.package.wasmer-compiler-cranelift]
+opt-level = 2
+[profile.dev.package.cranelift-codegen]
+opt-level = 2
+
+[lib]
+crate-type = ["cdylib", "rlib"]
