@@ -1,0 +1,39 @@
+{
+  "at": "2026-10-12T06:55:52.206Z",
+  "link": "https://dead-drop.sites.tab.bot/#/d/WzEsIjYwOTY0NzA5MjdmZWNiMTIwZTZkYzhhOWMzZGJkMDk0ZWMwNDhjM2RjNWM2MWMwZDdlMTE2N2IwMzk0ZDBiMmQiLCJlM2IzMjA0NDVhYjdhOTA4ZTM0ODliMTA4OTZiM2RhZSIsIkkgaGF2ZSBhIGZhY2UgdGhhdCBuZXZlciBzbWlsZXMgYW5kIGhhbmRzIHRoYXQgbmV2ZXIgd2F2ZS4gV2hhdCBhbSBJPyIsIjUyZDBmMTc2NDQ2YTc5YTg1NDBkYTQ5YzkyOGUwMGU3OTViYWI1NDgwZThmNDM3NGY3MDdmMzMwMzE1OTRmNzgiLDEyMTg2LDAsMCwwXQ",
+  "results": [
+    {
+      "name": "UI bury (auto-summon for an empty ghost, then bury)",
+      "ok": true,
+      "extra": "131s "
+    },
+    {
+      "name": "UI wrong answer is refused locally",
+      "ok": true
+    },
+    {
+      "name": "UI right answer decrypts the secret in the browser",
+      "ok": true,
+      "extra": "Meet me at the old oak at midnight. Bring a lantern."
+    },
+    {
+      "name": "UI raise into the solver's ghost",
+      "ok": true,
+      "extra": "62s"
+    },
+    {
+      "name": "solver ghost now holds tTARI",
+      "ok": true,
+      "extra": "0.49 tTARI"
+    },
+    {
+      "name": "X-ray shows the drop as spent",
+      "ok": true
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "extra": ""
+    }
+  ]
+}

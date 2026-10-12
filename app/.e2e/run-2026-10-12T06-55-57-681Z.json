@@ -1,0 +1,21 @@
+[
+  {
+    "t": "2026-10-12T06:55:57.946Z",
+    "step": "return: epochs",
+    "ok": true,
+    "data": {
+      "now": 12162,
+      "returnsAt": 12161
+    }
+  },
+  {
+    "t": "2026-10-12T06:57:00.419Z",
+    "step": "return: the sender takes the unraised drop back after the deadline",
+    "ok": true,
+    "data": {
+      "tx": "46365460cbe161dfbca0711e675083196a300005d59dc6f18f9f4d9f5177407b",
+      "value": "489694",
+      "fee": "10306"
+    }
+  }
+]
