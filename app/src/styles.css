@@ -149,3 +149,5 @@ table.my{width:100%;border-collapse:collapse;font-size:14px} table.my td,table.m
 @media (max-width:760px){.scene .moon{width:90px;height:90px}.candles{gap:80px}}
 .candles{gap:min(400px,90vw);margin-top:-34px}
 @media (max-width:760px){.candles{gap:min(300px,80vw)}}
+.candles span:nth-child(2){display:none}
+.hero>*,.split>*{min-width:0}

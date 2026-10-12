@@ -181,9 +181,10 @@ function walletFor(k: Keypair): OotleWallet {
 /** Build, prove, sign and submit one stealth transfer whose fee is paid from its own revealed output. */
 export async function stealthSend(provider: Provider, plan: SendPlan) {
   const crypto = new WasmStealthCrypto(NETWORK);
+  // The revealed (fee) output can only be taken by the transaction signer, so it is always addressed to them.
   const { statement: outputsStatement, outputMask } = await crypto.generateOutputsStatement(plan.outputs, {
     amount: plan.fee,
-    receiver: plan.feeReceiver,
+    receiver: plan.signer.ownerPublic,
   });
 
   const inputsJson = plan.inputs.map((i) => {

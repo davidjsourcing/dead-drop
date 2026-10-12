@@ -809,6 +809,7 @@ dependencies = [
 name = "dead_drop"
 version = "0.1.0"
 dependencies = [
+ "minicbor",
  "tari_template_lib",
  "tari_template_test_tooling",
 ]

@@ -9,6 +9,17 @@ import { encodeLink, saltBytes, termsFromLink, type DropLink } from "./link";
 import { currentEpoch, dryRunFee, findOwned, provider, submitAndWait, type Committed } from "./chain";
 
 export type Stage = (s: string) => void;
+
+/** The memo comes back as a string, a JSON string or an object depending on the SDK path; reduce it to its text. */
+export function memoText(memo: unknown): string {
+  let m: any = memo;
+  if (typeof m === "string") {
+    try { m = JSON.parse(m); } catch { return m; }
+  }
+  if (m instanceof Map) m = Object.fromEntries(m);
+  if (typeof m === "string") return m;
+  return String(m?.Message ?? m?.message ?? m?.Text ?? (m ? JSON.stringify(m) : ""));
+}
 const FEE_MARGIN = 1.15;
 const MIN_FEE = 2_000n;
 
@@ -52,6 +63,7 @@ export async function summon(ghost: Keypair, onStage?: Stage): Promise<{ utxo: O
       return fb;
     });
     b.addInput({ substate_id: DEPLOYMENT.crypt, version: null });
+    b.addInput({ substate_id: DEPLOYMENT.cauldron, version: null });
     let tx = await resolveTransaction(p, b.buildUnsignedTransaction());
     if (dryRun) tx = { ...tx, dry_run: true } as typeof tx;
     const s = SecretKeyWallet.fromKeypair(ghost.ownerSecret, ghost.ownerPublic, NETWORK, ghost.viewSecret);
@@ -180,6 +192,7 @@ export async function postGrave(payer: Keypair, coin: OwnedUtxo, buried: Buried,
       },
     } as never);
     b.addInput({ substate_id: DEPLOYMENT.crypt, version: null });
+    b.addInput({ substate_id: DEPLOYMENT.cauldron, version: null });
     b.addInput({ substate_id: `utxo_${TARI.slice(9)}_${coin.commitment}`, version: null });
     let tx = await resolveTransaction(p, b.buildUnsignedTransaction());
     if (dryRun) tx = { ...tx, dry_run: true } as typeof tx;
@@ -201,6 +214,104 @@ export async function postGrave(payer: Keypair, coin: OwnedUtxo, buried: Buried,
   return { graveId: Number(ev?.payload?.id ?? 0), change: mine[0]?.utxo ?? null, txId: c.txId };
 }
 
+
+// ------------------------------------------------------------------------------------------------ feed
+
+/** Pour tTARI from a ghost's stealth coins into the crypt's cauldron (anyone may feed it). One transaction:
+ *  StealthTransfer reveals `amount + fee` → TakeFromBucket(amount) → crypt.feed(bucket) → pay the fee from the rest. */
+export async function feedCauldron(payer: Keypair, coins: OwnedUtxo[], amount: bigint, onStage?: Stage): Promise<{ txId: string; change: OwnedUtxo | null; fee: bigint }> {
+  if (!DEPLOYMENT.crypt) throw new Error("The crypt is not open on this network yet.");
+  const p = await provider();
+  const total = coins.reduce((a, c) => a + c.value, 0n);
+  const FEED_SLOT = 40; // a workspace key no saveVar in this builder will reach
+  const build = async (fee: bigint, dryRun: boolean) => {
+    const crypto = new WasmStealthCrypto(NETWORK);
+    const change = total - amount - fee;
+    if (change < 0n) throw new Error("not enough tTARI to feed that much");
+    const outs = change > 0n ? [createOutput({ destination: payer.address, amount: change, resourceAddress: TARI })] : [];
+    const { statement: outputs, outputMask } = await crypto.generateOutputsStatement(outs, { amount: amount + fee, receiver: payer.ownerPublic });
+    const { buildStealthInputsStatementFromInputs } = await import("@tari-project/ootle-wasm");
+    const canonical = buildStealthInputsStatementFromInputs(JSON.stringify(coins.map((c) => ({ commitment: c.commitment, witness: "KeyPath" }))), 0n);
+    const inputs = new StealthInputsStatement([], 0n, canonical);
+    const proof = await crypto.generateBalanceProofSignature(await crypto.aggregateInputMasks(coins.map((c) => new Mask(c.mask))), outputMask, canonical, outputs.statementJson);
+    const statement = new StealthTransferStatement(inputs, outputs, proof);
+    const b = new TransactionBuilder(NETWORK, await resolveMaxEpoch(p)).withFeeInstructionsBuilder((fb) => {
+      fb.addInstruction({ StealthTransfer: { resource_address_ref: { Address: TARI }, statement: statementAsWire(statement), revealed_input_bucket: null } } as never);
+      fb.saveVar("rev");
+      fb.addInstruction({ TakeFromBucket: { input_bucket: fb.resolveWorkspaceOffsetId("rev"), amount: amount.toString(), output_bucket: FEED_SLOT } } as never);
+      fb.addInstruction({ CallMethod: { call: { Address: DEPLOYMENT.crypt }, method: "feed", args: [{ Workspace: { id: FEED_SLOT, offset: null } }] } } as never);
+      fb.addInstruction({ PayFeeFromBucket: { bucket: fb.resolveWorkspaceOffsetId("rev") } } as never);
+      return fb;
+    });
+    b.addInput({ substate_id: DEPLOYMENT.crypt, version: null });
+    b.addInput({ substate_id: DEPLOYMENT.cauldron, version: null });
+    for (const c of coins) b.addInput({ substate_id: `utxo_${TARI.slice(9)}_${c.commitment}`, version: null });
+    let tx = await resolveTransaction(p, b.buildUnsignedTransaction());
+    if (dryRun) tx = { ...tx, dry_run: true } as typeof tx;
+    const s = SecretKeyWallet.fromKeypair(payer.ownerSecret, payer.ownerPublic, NETWORK, payer.viewSecret);
+    const wallet = new OotleWallet().registerKeyProvider(payer.address, s).setDefaultSigner(payer.address);
+    const auth = new AuthorizedTransfer({
+      wallet, crypto, spec: { unsignedTx: tx, statement } as never,
+      resolvedInputs: coins.map((c) => ({ ownerAddr: payer.address, input: { commitment: fromHexStr(c.commitment) }, mask: new Mask(c.mask), publicNonce: c.publicNonce })) as never,
+      mustSignWithAccountKey: true, sealKeypair: generateSealKeypair(),
+    });
+    return { envelope: await auth.seal() };
+  };
+  const c = await sendWithFee(build, onStage);
+  const mine = await findOwned(c.ups, [payer]);
+  return { txId: c.txId, change: mine[0]?.utxo ?? null, fee: c.fee };
+}
+
+
+// ------------------------------------------------------------------------------------------------ generic
+
+/** Run arbitrary main instructions, paying the fee from the payer's own stealth coins (change comes back stealth).
+ *  Used by the deploy script (publish the template, open the crypt) and anything else that just needs a fee. */
+export async function withStealthFee(
+  payer: Keypair,
+  coins: OwnedUtxo[],
+  configure: (b: TransactionBuilder) => TransactionBuilder,
+  extraInputs: string[] = [],
+  onStage?: Stage,
+): Promise<Committed & { fee: bigint; change: OwnedUtxo | null }> {
+  const p = await provider();
+  const total = coins.reduce((a, c) => a + c.value, 0n);
+  const build = async (fee: bigint, dryRun: boolean) => {
+    const crypto = new WasmStealthCrypto(NETWORK);
+    const change = total - fee;
+    if (change < 0n) throw new Error("not enough tTARI for the fee");
+    const outs = change > 0n ? [createOutput({ destination: payer.address, amount: change, resourceAddress: TARI })] : [];
+    const { statement: outputs, outputMask } = await crypto.generateOutputsStatement(outs, { amount: fee, receiver: payer.ownerPublic });
+    const { buildStealthInputsStatementFromInputs } = await import("@tari-project/ootle-wasm");
+    const canonical = buildStealthInputsStatementFromInputs(JSON.stringify(coins.map((c) => ({ commitment: c.commitment, witness: "KeyPath" }))), 0n);
+    const inputs = new StealthInputsStatement([], 0n, canonical);
+    const proof = await crypto.generateBalanceProofSignature(await crypto.aggregateInputMasks(coins.map((c) => new Mask(c.mask))), outputMask, canonical, outputs.statementJson);
+    const statement = new StealthTransferStatement(inputs, outputs, proof);
+    let b = new TransactionBuilder(NETWORK, await resolveMaxEpoch(p)).withFeeInstructionsBuilder((fb) => {
+      fb.addInstruction({ StealthTransfer: { resource_address_ref: { Address: TARI }, statement: statementAsWire(statement), revealed_input_bucket: null } } as never);
+      fb.saveVar("fees");
+      fb.addInstruction({ PayFeeFromBucket: { bucket: fb.resolveWorkspaceOffsetId("fees") } } as never);
+      return fb;
+    });
+    b = configure(b);
+    for (const id of extraInputs) b.addInput({ substate_id: id, version: null });
+    for (const c of coins) b.addInput({ substate_id: `utxo_${TARI.slice(9)}_${c.commitment}`, version: null });
+    let tx = await resolveTransaction(p, b.buildUnsignedTransaction());
+    if (dryRun) tx = { ...tx, dry_run: true } as typeof tx;
+    const s = SecretKeyWallet.fromKeypair(payer.ownerSecret, payer.ownerPublic, NETWORK, payer.viewSecret);
+    const wallet = new OotleWallet().registerKeyProvider(payer.address, s).setDefaultSigner(payer.address);
+    const auth = new AuthorizedTransfer({
+      wallet, crypto, spec: { unsignedTx: tx, statement } as never,
+      resolvedInputs: coins.map((c) => ({ ownerAddr: payer.address, input: { commitment: fromHexStr(c.commitment) }, mask: new Mask(c.mask), publicNonce: c.publicNonce })) as never,
+      mustSignWithAccountKey: true, sealKeypair: generateSealKeypair(),
+    });
+    return { envelope: await auth.seal() };
+  };
+  const c = await sendWithFee(build, onStage);
+  const mine = await findOwned(c.ups, [payer]);
+  return { ...c, change: mine[0]?.utxo ?? null };
+}
+
 // ------------------------------------------------------------------------------------------------ raise
 
 export type Peek =
@@ -217,8 +328,7 @@ export async function peek(link: DropLink, answer: string): Promise<Peek> {
   try {
     const crypto = new WasmStealthCrypto(NETWORK);
     const u = await openUtxo(crypto, live, keys, true);
-    const memo: any = u.memo;
-    const secret = typeof memo === "string" ? memo : memo?.Message ?? memo?.message ?? (memo ? JSON.stringify(memo) : "");
+    const secret = memoText(u.memo);
     return { state: "right", value: u.value, secret, answerKeys: keys, utxo: u };
   } catch {
     return { state: "wrong" };

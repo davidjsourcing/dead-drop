@@ -110,6 +110,38 @@ fn bury_emits_a_grave_and_counts() {
     assert_eq!(grave.payload().get_str("returns").unwrap(), "1000");
     // No amount, no owner ever appears in the public event.
     assert!(!grave.payload().contains_key("amount"));
+
+    // The grave is also kept in the crypt's own state, readable with one substate fetch.
+    let result = test.execute_expect_success(
+        test.transaction()
+            .call_method(crypt, "recent_graves", args![])
+            .build_and_seal(&key),
+        vec![proof],
+    );
+    let graves = result.finalize.execution_results[0]
+        .decode::<Vec<dead_drop::Grave>>()
+        .unwrap();
+    assert_eq!(graves.len(), 1);
+    assert_eq!(graves[0].id, 1);
+    assert_eq!(graves[0].link, "dd1.example");
+}
+
+#[test]
+fn the_graveyard_keeps_only_the_most_recent_graves() {
+    let mut list = Vec::new();
+    for id in 1..=(dead_drop::MAX_GRAVES as u64 + 5) {
+        dead_drop::push_grave(
+            &mut list,
+            dead_drop::Grave {
+                id,
+                epoch: 0,
+                link: format!("l{id}"),
+            },
+        );
+    }
+    assert_eq!(list.len(), dead_drop::MAX_GRAVES);
+    assert_eq!(list.first().unwrap().id, 6);
+    assert_eq!(list.last().unwrap().id, dead_drop::MAX_GRAVES as u64 + 5);
 }
 
 #[test]

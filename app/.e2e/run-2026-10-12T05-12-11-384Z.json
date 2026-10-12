@@ -1,0 +1,11 @@
+[
+  {
+    "t": "2026-10-12T05:12:12.624Z",
+    "step": "walletd funds the bank ghost with a stealth output",
+    "ok": true,
+    "data": {
+      "tx": "42a26d13b79ab81830929dde99546c5801e66847c6e09574e0798575fd1237c6",
+      "value": "80000000"
+    }
+  }
+]

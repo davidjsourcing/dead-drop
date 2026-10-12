@@ -25,6 +25,10 @@ pub const MAX_EPITAPH_BYTES: usize = 160;
 /// Longest public drop link (the public parameters needed to try the riddle: commitment, salt, epochs, refund key).
 pub const MAX_LINK_BYTES: usize = 480;
 
+/// How many recent graves the crypt keeps in its own state, so a browser can read the graveyard with one substate
+/// fetch (the public indexer does not index custom template events). Older graves fall off; their drops are unaffected.
+pub const MAX_GRAVES: usize = 24;
+
 /// The witching-hour window must be strictly shorter than its period, otherwise it is not a lock at all.
 pub fn witching_phase_open(epoch: u64, period: u64, offset: u64, window: u64) -> bool {
     assert!(period > 0, "witching hour: period must be positive");
@@ -42,6 +46,27 @@ pub fn spent_in_epoch(last_epoch: u64, spent: Amount, now: u64) -> Amount {
         spent
     } else {
         Amount::zero()
+    }
+}
+
+/// A public signpost for a drop: its number, the epoch it was carved, and the drop's public link (riddle, commitment,
+/// salt, epochs, one-time refund key). Never an amount, an owner or an answer.
+#[derive(Debug, Clone, PartialEq, Eq, minicbor::Encode, minicbor::Decode, minicbor::CborLen)]
+pub struct Grave {
+    #[n(0)]
+    pub id: u64,
+    #[n(1)]
+    pub epoch: u64,
+    #[n(2)]
+    pub link: String,
+}
+
+/// Appends a grave and drops the oldest beyond `MAX_GRAVES`.
+pub fn push_grave(list: &mut Vec<Grave>, grave: Grave) {
+    list.push(grave);
+    if list.len() > MAX_GRAVES {
+        let extra = list.len() - MAX_GRAVES;
+        list.drain(0..extra);
     }
 }
 
@@ -63,6 +88,8 @@ mod dead_drop {
         summonings: u64,
         graves: u64,
         fed_total: Amount,
+        /// The most recent graves (bounded by `MAX_GRAVES`).
+        recent_graves: Vec<Grave>,
     }
 
     impl Crypt {
@@ -86,6 +113,7 @@ mod dead_drop {
                 summonings: 0,
                 graves: 0,
                 fed_total: Amount::zero(),
+                recent_graves: Vec::new(),
             })
             .with_owner_rule(OwnerRule::OwnedBySigner)
             .with_access_rules(access)
@@ -154,6 +182,14 @@ mod dead_drop {
                 "a drop must open before it returns"
             );
             self.graves += 1;
+            push_grave(
+                &mut self.recent_graves,
+                Grave {
+                    id: self.graves,
+                    epoch: now,
+                    link: link.clone(),
+                },
+            );
             emit_event(
                 "deaddrop.grave",
                 metadata![
@@ -175,6 +211,11 @@ mod dead_drop {
             assert!(dose.is_positive() && epoch_cap >= dose, "invalid dose");
             self.dose = dose;
             self.epoch_cap = epoch_cap;
+        }
+
+        /// The most recent graves, oldest first.
+        pub fn recent_graves(&self) -> Vec<Grave> {
+            self.recent_graves.clone()
         }
 
         pub fn stats(&self) -> (Amount, Amount, u64, u64) {

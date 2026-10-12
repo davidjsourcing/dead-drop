@@ -7,7 +7,7 @@
 // Every step writes what the chain returned into .e2e/run-<time>.json, which TEST-REPORT.md quotes.
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { exportKeys, importKeys, randomKeypair, type Keypair } from "../src/core/keys";
-import { bury, peek, raise, returnDrop, summon, postGrave } from "../src/core/flows";
+import { bury, peek, raise, returnDrop, summon, postGrave, feedCauldron } from "../src/core/flows";
 import { currentEpoch, findOwned, getUtxoRaw, listGraves } from "../src/core/chain";
 import { decodeLink } from "../src/core/link";
 import { DEPLOYMENT, MICRO } from "../src/core/net";
@@ -99,6 +99,9 @@ async function all(g: Ghosts) {
   const amount = (s.utxo.value * 6n) / 10n;
   const secret = "The spare key is under the third gravestone. Happy Halloween from the e2e test.";
   const b = await bury({ sender: newcomer, coins: [s.utxo], amount, secret, riddle: "What has a neck but no head?", answer: "A Bottle", returnsInEpochs: 3 }, (x) => console.log("   bury:", x));
+  const keep = existsSync(DIR + "drops.json") ? JSON.parse(readFileSync(DIR + "drops.json", "utf8")) : [];
+  keep.push({ link: b.linkStr, refund: exportKeys(b.refund), answer: "A Bottle", t: new Date().toISOString() });
+  writeFileSync(DIR + "drops.json", JSON.stringify(keep, null, 2));
   expect(b.link.commitment.length === 64, "bury: the drop is a single stealth UTXO with a two-leaf condition tree", { tx: b.txId, root: b.root, link: b.linkStr.length + " chars", fee: b.fee });
 
   // 3. X-ray: what the chain stores
@@ -120,6 +123,31 @@ async function all(g: Ghosts) {
   expect(gone.state === "gone", "raise: the drop is spent and can't be raised twice", gone);
   setCoins("bob", [...coinsOf("bob"), r.utxo]);
 
+
+  // 5b. The witching hour: the same drop shape plus a TemplateFunction leaf that runs the Crypt template's
+  //     `witching_hour` spend script. Open window → raise succeeds. Closed window → the engine refuses.
+  {
+    const bob = coinsOf("bob");
+    const now = await currentEpoch();
+    const period = 24;
+    for (const [label, offset, shouldOpen] of [["closed", (now + 5) % period, false], ["open", now % period, true]] as const) {
+      const coins = coinsOf("bob");
+      if (!coins.length) break;
+      const w = await bury({ sender: g.bob, coins, amount: 200_000n, secret: `witching test (${label})`, riddle: "What runs but never walks?", answer: "a river", returnsInEpochs: 3, witching: { period, offset, window: 2 } }, (x) => console.log(`   bury witching ${label}:`, x));
+      setCoins("bob", w.change ? [w.change] : []);
+      const pk = await peek(decodeLink(w.linkStr), "a river");
+      if (pk.state !== "right") throw new Error("witching drop did not open with its answer");
+      try {
+        const r = await raise(decodeLink(w.linkStr), pk, g.alice, (x) => console.log(`   raise witching ${label}:`, x));
+        expect(shouldOpen, `witching hour (${label} window): raise ${shouldOpen ? "succeeds" : "should have been refused"}`, { tx: r.txId, epoch: now, offset, period });
+        setCoins("alice", [...coinsOf("alice"), r.utxo]);
+      } catch (err) {
+        if (String((err as Error).message).startsWith("expectation failed")) throw err;
+        expect(!shouldOpen, `witching hour (${label} window): the template's spend script refuses the raise`, { error: String((err as Error).message).slice(0, 400), epoch: now, offset, period });
+      }
+    }
+    void bob;
+  }
   // 6. A second drop, posted to the public graveyard, left in the ground to test return-to-sender later.
   const bank = coinsOf("bank");
   if (bank.length) {
@@ -132,7 +160,7 @@ async function all(g: Ghosts) {
       const pg = await postGrave(g.bank, change, b2, (x) => console.log("   grave:", x));
       setCoins("bank", pg.change ? [pg.change] : []);
       expect(pg.graveId > 0, "graveyard: the grave is posted as a public event (epitaph + root, no amount, no owner)", { tx: pg.txId, graveId: pg.graveId });
-      const graves = await listGraves(DEPLOYMENT.template);
+      const graves = await listGraves(DEPLOYMENT.crypt);
       expect(graves.some((x) => x.commitment === b2.link.commitment), "graveyard: the indexer lists the new grave", { graves: graves.length });
     }
   }
@@ -154,9 +182,16 @@ async function doReturn(g: Ghosts) {
   }
 }
 
+async function feed(g: Ghosts, amountT: number) {
+  const coins = coinsOf("bank");
+  const r = await feedCauldron(g.bank, coins, BigInt(amountT) * MICRO, (x) => console.log("   feed:", x));
+  setCoins("bank", r.change ? [r.change] : []);
+  expect(true, "feed: the bank ghost pours stealth tTARI into the cauldron as a revealed bucket", { tx: r.txId, fed: amountT, fee: r.fee, change: r.change?.value });
+}
+
 const g = ghosts();
 const cmd = process.argv[2] ?? "all";
-const run = cmd === "fund" ? fund(g, Number(process.argv[3] ?? 40)) : cmd === "return" ? doReturn(g) : all(g);
+const run = cmd === "fund" ? fund(g, Number(process.argv[3] ?? 40)) : cmd === "feed" ? feed(g, Number(process.argv[3] ?? 30)) : cmd === "return" ? doReturn(g) : cmd === "addr" ? Promise.resolve(console.log(g.bank.address)) : all(g);
 run.then(
   () => { console.log("log:", runFile); process.exit(0); },
   (e) => { step("error", { message: String(e?.message ?? e), stack: String(e?.stack ?? "").slice(0, 800) }, false); console.log("log:", runFile); process.exit(1); },

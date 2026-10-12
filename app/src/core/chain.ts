@@ -43,20 +43,27 @@ export async function submitAndWait(envelope: any, onStage?: (s: string) => void
   return { txId: transaction_id, receipt, ups, feePaid };
 }
 
-/** Submit a dry run (unsigned_tx.dry_run = true) and return the fee the engine would charge. */
+/** Submit a dry run (unsigned_tx.dry_run = true) to the indexer's dry-run endpoint and return the fee it would charge. */
 export async function dryRunFee(envelope: any): Promise<bigint> {
-  const p = await provider();
-  const { transaction_id } = await p.submitTransaction(envelope);
-  const pending = p.watchTransactionSSE(transaction_id);
-  try {
-    await pending.watch();
-  } catch (e) {
-    throw new Error(`dry run rejected: ${(e as Error).message}`);
-  }
-  const rc: any = await pending.getReceipt();
-  const fin = rc?.result?.Finalized ?? rc?.result;
-  const fr = fin?.execution_result?.finalize?.fee_receipt ?? fin?.finalize?.fee_receipt;
-  return BigInt(fr?.total_fee_payment ?? fr?.total_fees_paid ?? 0);
+  const r = await fetch(`${INDEXER_URL}/transactions/dry-run`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ transaction: envelope }, (_k, v) => (typeof v === "bigint" ? v.toString() : v instanceof Uint8Array ? Array.from(v) : v)),
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`dry run failed: ${text.slice(0, 600)}`);
+  const j = JSON.parse(text);
+  (globalThis as any).__lastDryRun = j;
+  const res = j.result ?? j.dry_run_result ?? j;
+  const fin = res.finalize ?? res.Finalized?.execution_result?.finalize ?? res;
+  const reject = fin?.result?.Reject ?? fin?.result?.AcceptFeeRejectRest?.[1];
+  if (reject) throw new Error(`the network would reject this: ${JSON.stringify(reject).slice(0, 500)}`);
+  const fr = fin?.fee_receipt ?? res.fee_receipt;
+  // The engine charges the sum of the cost breakdown; total_fee_payment is just what this probe revealed.
+  const parts = Object.values(fr?.cost_breakdown?.breakdown ?? {}) as Array<number | string>;
+  const fee = parts.reduce((a: bigint, v) => a + BigInt(v), 0n);
+  if (fee === 0n) throw new Error(`dry run returned no fee: ${text.slice(0, 400)}`);
+  return fee;
 }
 
 /** Find the stealth outputs in a receipt that belong to any of `keys` (tries to decrypt each). */
@@ -100,24 +107,29 @@ export interface Grave {
   epoch: number;
 }
 
-/** Public graves, newest first, from the Crypt template's `deaddrop.grave` events. */
-export async function listGraves(templateAddress: string): Promise<Grave[]> {
-  const r = await fetch(`${INDEXER_URL}/transactions/events?template_address=${templateAddress}&limit=200`);
+/** Public graves, newest first, read from the crypt's own state (it keeps the most recent graves; the public indexer
+ *  does not index custom template events). Each grave is `[id, epoch, link]`; the link decodes to everything else. */
+export async function listGraves(crypt: string): Promise<Grave[]> {
+  const r = await fetch(`${INDEXER_URL}/substates/${crypt}`);
+  if (!r.ok) throw new Error(`could not read the crypt (${r.status})`);
   const j = await r.json();
+  const state: any[] = j?.substate?.Component?.body?.state ?? [];
+  const list: any[] = state.find((x) => Array.isArray(x) && (x.length === 0 || Array.isArray(x[0]))) ?? [];
+  const { decodeLink } = await import("./link");
   const graves: Grave[] = [];
-  for (const [, ev] of j.events ?? []) {
-    if (!String(ev.topic).endsWith("deaddrop.grave")) continue;
-    const p = ev.payload ?? {};
-    graves.push({
-      id: Number(p.id),
-      epitaph: String(p.epitaph ?? ""),
-      root: String(p.root ?? ""),
-      commitment: String(p.commitment ?? ""),
-      opens: Number(p.opens ?? 0),
-      returns: Number(p.returns ?? 0),
-      link: String(p.link ?? ""),
-      epoch: Number(p.epoch ?? 0),
-    });
+  for (const g of list) {
+    try {
+      const [id, epoch, link] = g as [number, number, string];
+      const d = decodeLink(link);
+      graves.push({ id: Number(id), epoch: Number(epoch), link, epitaph: d.riddle, commitment: d.commitment, opens: d.opensAt ?? 0, returns: d.returnsAt, root: "" });
+    } catch { /* skip a malformed grave */ }
   }
   return graves.sort((a, b) => b.id - a.id);
+}
+
+/** The crypt's public counters: cauldron balance is read from its vault. */
+export async function cryptStats(crypt: string): Promise<{ dose: bigint; cap: bigint; summonings: number; graves: number; fed: bigint }> {
+  const j = await (await fetch(`${INDEXER_URL}/substates/${crypt}`)).json();
+  const s: any[] = j?.substate?.Component?.body?.state ?? [];
+  return { dose: BigInt(s[1] ?? 0), cap: BigInt(s[2] ?? 0), summonings: Number(s[5] ?? 0), graves: Number(s[6] ?? 0), fed: BigInt(s[7] ?? 0) };
 }

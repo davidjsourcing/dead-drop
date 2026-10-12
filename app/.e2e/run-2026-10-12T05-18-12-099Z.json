@@ -1,0 +1,118 @@
+[
+  {
+    "t": "2026-10-12T05:18:12.103Z",
+    "step": "crypt is deployed",
+    "ok": true,
+    "data": {
+      "template": "d0d38fb2e8a7bd28e41a63265b8ec8bf727c96b173f4a8beb83b6a63824c512b",
+      "crypt": "component_5b6254ddcf677c2202f48995732ba1b5ee585fb46972bb895f8d4239023cdfd1",
+      "cauldron": "vault_5b39404cab2a558f0f2e98b373aacfa93fd2a232dd90936964d156d11538cecf",
+      "dose": "2000000"
+    }
+  },
+  {
+    "t": "2026-10-12T05:18:12.512Z",
+    "step": "current epoch",
+    "ok": true,
+    "data": {
+      "epoch": 12159
+    }
+  },
+  {
+    "t": "2026-10-12T05:19:14.628Z",
+    "step": "summon: a fresh ghost receives a hidden dose from the cauldron",
+    "ok": true,
+    "data": {
+      "tx": "4d1d9418881eb805dac4e369f4b8636996f926aeb14b653fe755881079b920b8",
+      "value": "1987982"
+    }
+  },
+  {
+    "t": "2026-10-12T05:19:14.828Z",
+    "step": "summon: the chain record names neither the ghost's address nor its public key",
+    "ok": true,
+    "data": {
+      "commitment": "403c0ca561c04e1f2f1b14de730c72ab7f003090be6757bb3d82a5c4a615734d"
+    }
+  },
+  {
+    "t": "2026-10-12T05:20:17.155Z",
+    "step": "bury: the drop is a single stealth UTXO with a two-leaf condition tree",
+    "ok": true,
+    "data": {
+      "tx": "729d81a45073e9fb59765d9a58aac85984c0cb72e9590021a04e2e8eccc15802",
+      "root": "4c66f155ee1c102dfb67ab5901bfd58685ea1782d36d50bf1456546612cac5bb",
+      "link": "332 chars",
+      "fee": "17627"
+    }
+  },
+  {
+    "t": "2026-10-12T05:20:17.362Z",
+    "step": "x-ray: the on-chain output holds no amount, no secret and no answer in the clear",
+    "ok": true,
+    "data": {
+      "substate": {
+        "version": 0,
+        "substate": {
+          "Utxo": {
+            "output": {
+              "output": {
+                "public_nonce": "d4ca0839ce762e5f552db98644678c08670137211463dae2e094ec44c94d6d07",
+                "encrypted_data": "d167c2c3dedf9d509d3c68d82c3e564507aaeffc4689989a8a2bad4491077e0163868e0037521a9db92c598826e4067796b9e85e43d63f1480a573910290a87ef759cf0b5c92a4ccdb4344c3f1fea61da478f6811940b3a11c0ac14d48a58921c49d8aa9bd63210be801dfad42ae82ac4a3e2fd6faeaa98510a278392a9d9aca65ed1c97bcc01c1072b7dafbfbc03735a05c50400c0f243542d5c1eee4c73f86545f892d75fadec0b0d71dc4ac8073eabf27efa25819e568d7e57c510dbbf558d4e27112847929f348fd87262665be4e",
+                "minimum_value_promise": 0,
+                "viewable_balance": null
+              },
+              "auth": {
+                "Script": "4c66f155ee1c102dfb67ab5901bfd58685ea1782d36d50bf1456546612cac5bb"
+              },
+              "tag": 4052417208
+            },
+            "is_frozen": false
+          }
+        },
+        "verified": true,
+        "proof": {
+          "anchor": {
+            "epoch": 12159,
+            "shard_group": {
+              "start": 1,
+              "end_inclusive": 256
+            },
+            "height": 700,
+            "block_id": "88a39f18c8ae340569ffee8ed37cc699fe341fd312a710467ba4706a74f92491",
+            "state_merkle_root": "d04050429d876dcc7cd9b116ac0f335d8cc2ef4894afc8d876c9703a20874d83"
+          },
+          "commit_proof": "omZoZWFkZXKuZ25ldHdvcmsYJnBwcm90b2NvbF92ZXJzaW9uAWlwYXJlbnRfaWRYIAcIRIlHe6BubuDu1oPq507/foZ6XA41k33bsrcojwmaamp1c3RpZnlfaWRYINI93ZkpC+XRhr4ss2vVn8dNp2dbC7pKlPi+B3DsB6ziZmhlaWdodBkCvGVlcG9jaBkvf2plcG9jaF9oYXNoWCCo1rYKAAFzbgmPj9KO3wZC1zq8HHJ4Fnn1pvcesoHp42tzaGFyZF9ncm91cKJlc3RhcnQBbWVuZF9pbmNsdXNpdmUZAQBrcHJvcG9zZWRfYnlYIBB4D+G00x+DUOS4gdzNj4IQzgVgUKxt2MyojKFnELBEcXN0YXRlX21lcmtsZV9yb290WCDQQFBCnYdtzHzZsRasDzNdjMLvSJSvyNh2yXA6IIdNg3Njb21tYW5kX21lcmtsZV9yb290WCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGlzaWduYXR1cmWibHB1YmxpY19ub25jZVggPmD3+1NZi+x82lyEgaJKX5wDo1pRH8M1UQjpwZLsMg1pc2lnbmF0dXJlWCDYqotyb3McHivtzaMzapY781FFCvvsFWBsPR+lMnX2AXBhY2N1bXVsYXRlZF9kYXRhoXJ0b3RhbF9leGhhdXN0X2J1cm4aACMviW1tZXRhZGF0YV9oYXNoWCAfCU1/OcRFTJhD22KdIafZSYPqD34/Je5wVp6+pGojsW5wcm9vZl9lbGVtZW50c4OhcVF1b3J1bUNlcnRpZmljYXRlp2toZWFkZXJfaGFzaFggnxO74WOMRYzxFqstP6zJ0zP3YBLCYXiaTsKOXTWswTVpcGFyZW50X2lkWCAhs1L37x4c1hda0pN0ryWwq4PE3sa4jnPAs1XglI4NdHBwcm90b2NvbF92ZXJzaW9uAWVlcG9jaBkvf2ZoZWlnaHQZAr5qc2lnbmF0dXJlc4OianB1YmxpY19rZXlYIFaK2t0nRMe7OuTFjiboOkmlta8zgO381rXXrzFVgFUvaXNpZ25hdHVyZaJscHVibGljX25vbmNlWCCw2faZc+N6tkJsuod5OXacTxcLN43kiB7x/gZaCdUaTmlzaWduYXR1cmVYILTxDc3Xe0dGDeJmchjO39/FD+EbOuk53aRU+rxqBDsOompwdWJsaWNfa2V5WCDW2jWtujZC59E0OYXV5PEj9SMKdMVIC/KFeqvlC81jYmlzaWduYXR1cmWibHB1YmxpY19ub25jZVgg4GD5574yv23geesDuzDhqrqNU1oRCGOgE8F5BMjFRxBpc2lnbmF0dXJlWCA2hZLNxl3EdQt3FaZcFPeW++StVNoiivRR3M5hV2+vB6JqcHVibGljX2tleVggxID+OnbwPc3OjXyFrH0AAeyXtmcmAXJwmyOBjIcH5QNpc2lnbmF0dXJlomxwdWJsaWNfbm9uY2VYIHBbghVWlswmL41aJba5ezgxrXkWSMBNu6pmB99zLU04aXNpZ25hdHVyZVgg1n5/E0AU3QBC41kHOhzt6TDC+vAilNFY4InInDH4hw5oZGVjaXNpb25mQWNjZXB0oXFRdW9ydW1DZXJ0aWZpY2F0ZadraGVhZGVyX2hhc2hYIJjjl2kqxRNISxJ5RqGJDo7wLXwgiQq8esgOg+NJS1t5aXBhcmVudF9pZFggiKOfGMiuNAVp/+6O03zGmf40H9MSpxBGe6RwanT5JJFwcHJvdG9jb2xfdmVyc2lvbgFlZXBvY2gZL39maGVpZ2h0GQK9anNpZ25hdHVyZXODompwdWJsaWNfa2V5WCDW2jWtujZC59E0OYXV5PEj9SMKdMVIC/KFeqvlC81jYmlzaWduYXR1cmWibHB1YmxpY19ub25jZVggyqUFUhaBAx27qkO7gN6O4acgPwv35KiIInyBCnL8XQZpc2lnbmF0dXJlWCBUxnAgq4Qj/D7ZtJP8cP3S2jS9LKu3EmkNXm1nmPKdBqJqcHVibGljX2tleVggxID+OnbwPc3OjXyFrH0AAeyXtmcmAXJwmyOBjIcH5QNpc2lnbmF0dXJlomxwdWJsaWNfbm9uY2VYIIqIvgVMfiyLEBDujKAOF2Rqq6Qgc34M23n+BJOJxDpFaXNpZ25hdHVyZVggBrMAtsgZXfufMjDc8RTZoBk7Vuj8SMEwZ8Q8stapQAeianB1YmxpY19rZXlYIFaK2t0nRMe7OuTFjiboOkmlta8zgO381rXXrzFVgFUvaXNpZ25hdHVyZaJscHVibGljX25vbmNlWCCSN0AqAEt+9MNtKiTvvnSCaA3wtgm3eMY5N7apsavYLGlzaWduYXR1cmVYIBVz9wHPy/7czfGJEd8G23qE8dgUtAVQziqwHYEaT/0PaGRlY2lzaW9uZkFjY2VwdKFxUXVvcnVtQ2VydGlmaWNhdGWna2hlYWRlcl9oYXNoWCBmaSHaWNzG9qBmI7HpT6K0JIzwPCzb0/7EQqzowJQd8WlwYXJlbnRfaWRYIAcIRIlHe6BubuDu1oPq507/foZ6XA41k33bsrcojwmacHByb3RvY29sX3ZlcnNpb24BZWVwb2NoGS9/ZmhlaWdodBkCvGpzaWduYXR1cmVzg6JqcHVibGljX2tleVggxID+OnbwPc3OjXyFrH0AAeyXtmcmAXJwmyOBjIcH5QNpc2lnbmF0dXJlomxwdWJsaWNfbm9uY2VYIIYkjo7tWE8TBFBgCU0ETd8QR0L06dfWFX8CxlEpf5l0aXNpZ25hdHVyZVgg45igZxzy8CIaMClSMPVNKTdAe/dVwIr0MhdD6RwB0QOianB1YmxpY19rZXlYINbaNa26NkLn0TQ5hdXk8SP1Iwp0xUgL8oV6q+ULzWNiaXNpZ25hdHVyZaJscHVibGljX25vbmNlWCA+oh/guZRe7jWLmsDoaB7eaLE1uEg8GYFPA3cSlGU2F2lzaWduYXR1cmVYIKdg7O2NDlwQWO6xlRxl/te1uscRO8aNYg7PGSvc6kYEompwdWJsaWNfa2V5WCBWitrdJ0THuzrkxY4m6DpJpbWvM4Dt/Na1168xVYBVL2lzaWduYXR1cmWibHB1YmxpY19ub25jZVgg0LMFTluKhBh2LyPNmdoqbeBJ8PIhnovy20fdz07ipXRpc2lnbmF0dXJlWCBNp8x+R7bFJ/mVnnnvjK4NixfGBGH65YAjDjs/DZLsAGhkZWNpc2lvbmZBY2NlcHQ=",
+          "value_proof": "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",
+          "value_hash_epoch": 12159
+        }
+      }
+    }
+  },
+  {
+    "t": "2026-10-12T05:20:17.732Z",
+    "step": "peek: a wrong answer cannot decrypt the drop",
+    "ok": true,
+    "data": {
+      "state": "wrong"
+    }
+  },
+  {
+    "t": "2026-10-12T05:20:18.129Z",
+    "step": "peek: the right answer reveals the secret and the hidden amount, locally",
+    "ok": false,
+    "data": {
+      "secret": "{\"Message\":\"The spare key is under the third gravestone. Happy Halloween from the e2e test.\"}",
+      "value": "1192789"
+    }
+  },
+  {
+    "t": "2026-10-12T05:20:18.132Z",
+    "step": "error",
+    "ok": false,
+    "data": {
+      "message": "expectation failed: peek: the right answer reveals the secret and the hidden amount, locally",
+      "stack": "Error: expectation failed: peek: the right answer reveals the secret and the hidden amount, locally\n    at expect (/home/user/tab/files/bounties-oct9/tari/dead-drop/app/scripts/e2e.ts:31:20)\n    at all (/home/user/tab/files/bounties-oct9/tari/dead-drop/app/scripts/e2e.ts:113:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+    }
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "template": "template_57d02c26b94121ce11a8ad9b93e9ac19e8acea190b5d12f16a6e420e41c25bd7",
+  "publishTx": "1763898e916a52c3491025caaabd8950a3562b58674ab5d580b1725199a16cd9",
+  "publishFee": "1773130",
+  "crypt": "component_2ef70ea3131676f968c035d6162f4d1dfd5894d1dfae4fd700d3e2a2f669d479",
+  "openTx": "f20accc6014c8b64205bd37b0990e2d3e3d74419120c9c5b492b174b5aea5583",
+  "dose": "2000000",
+  "cap": "12000000",
+  "feeds": [
+    {
+      "tx": "5f0273e5325e130b97a8db30c1e09a34568f10930c22a1784e69144887ac464b",
+      "amount": "40"
+    },
+    {
+      "tx": "a1019d096dbee0d8ce5d743ea3149b06283b9179c2a108e36d26c6f5c8608c1e",
+      "amount": "25"
+    }
+  ]
+}

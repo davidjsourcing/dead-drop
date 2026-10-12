@@ -226,7 +226,7 @@ async function raiseView(linkStr: string) {
 async function graveyardView() {
   app.innerHTML = `<div class="eyebrow">Public graves</div><h2>The graveyard</h2><p class="lede">Riddles carved by strangers. Each guards a hidden offering and a secret. Answer one and it's yours.</p><div class="graves" id="graves"><p class="status">reading the stones…</p></div>`;
   if (!DEPLOYMENT.template) { $("#graves").innerHTML = `<p class="hint">The crypt isn't open on this network yet.</p>`; return; }
-  const [graves, epoch] = await Promise.all([listGraves(DEPLOYMENT.template), currentEpoch()]);
+  const [graves, epoch] = await Promise.all([listGraves(DEPLOYMENT.crypt), currentEpoch()]);
   if (!graves.length) { $("#graves").innerHTML = `<p class="hint">No graves yet. <a href="#/bury">Dig the first one.</a></p>`; return; }
   const cards = await Promise.all(graves.map(async (g) => {
     const live = await getUtxoRaw(g.commitment).catch(() => null);
