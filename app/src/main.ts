@@ -82,7 +82,7 @@ function buryView() {
   <div class="split">
     <form class="panel" id="buryform" autocomplete="off">
       <div class="eyebrow">New grave</div>
-      <h2>Bury a secret</h2>
+      <h1 class="pg">Bury a secret</h1>
       <label for="secret">The secret <small>encrypted on-chain · 200 bytes max</small></label>
       <textarea id="secret" maxlength="200" required placeholder="The spare key is under the third gravestone."></textarea>
       <div class="row">
@@ -174,7 +174,7 @@ function buriedView(linkStr: string) {
     <div class="rise">${tombstone(link.riddle, "buried · weight hidden · owner unlinkable")}</div>
     <div class="panel">
       <div class="eyebrow">It's in the ground</div>
-      <h2>Share the grave</h2>
+      <h1 class="pg">Share the grave</h1>
       <p class="lede" style="font-size:17px">Send this link to whoever should answer. It carries only public parameters — the answer stays with you. Still unraised after epoch ${link.returnsAt} (about the time you chose), it can come back to you from <a href="#/mine">My drops</a>.</p>
       <div class="linkbox"><input id="lnk" readonly value="${esc(url)}" /><button class="btn ghost" id="copy">Copy</button></div>
       <div style="display:flex;gap:20px;align-items:center;margin-top:18px"><div class="qr">${qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true })}</div>
@@ -186,13 +186,13 @@ function buriedView(linkStr: string) {
 
 async function raiseView(linkStr: string) {
   let link: DropLink;
-  try { link = decodeLink(linkStr); } catch (e) { app.innerHTML = `<div class="panel"><h2>Lost grave</h2><p>${esc((e as Error).message)}</p></div>`; return; }
+  try { link = decodeLink(linkStr); } catch (e) { app.innerHTML = `<div class="panel"><h1 class="pg">Lost grave</h1><p>${esc((e as Error).message)}</p></div>`; return; }
   app.innerHTML = `
   <div class="split">
     <div id="stone">${tombstone(link.riddle)}</div>
     <div class="panel" id="side">
       <div class="eyebrow">Something is buried here</div>
-      <h2>Speak the answer</h2>
+      <h1 class="pg">Speak the answer</h1>
       <p class="lede" style="font-size:17px">Its weight is hidden and its owner unnamed. Answer the riddle on the stone: if you're right, your browser can read what's inside. Nothing is sent until you choose to raise it.</p>
       <form id="ans" autocomplete="off"><label for="answer">Your answer</label><input id="answer" required autofocus placeholder="…" /><div class="cta"><button class="btn primary" id="speak">${icon("candle")} Speak</button></div></form>
       <div class="status" id="status"></div>
@@ -200,7 +200,7 @@ async function raiseView(linkStr: string) {
     </div>
   </div>`;
   const live = await getUtxoRaw(link.commitment).catch(() => null);
-  if (!live) { $("#side").innerHTML = `<div class="eyebrow">Empty grave</div><h2>Someone got here first</h2><p class="lede" style="font-size:17px">This drop has already been raised or returned. The chain shows the output is spent — and nothing about who spent it.</p><a class="btn ghost" href="#/xray/${link.commitment}">See what the chain kept</a>`; return; }
+  if (!live) { $("#side").innerHTML = `<div class="eyebrow">Empty grave</div><h1 class="pg">Someone got here first</h1><p class="lede" style="font-size:17px">This drop has already been raised or returned. The chain shows the output is spent — and nothing about who spent it.</p><a class="btn ghost" href="#/xray/${link.commitment}">See what the chain kept</a>`; return; }
   $("#ans").addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = $("#status"); const btn = $<HTMLButtonElement>("#speak"); btn.disabled = true;
@@ -232,14 +232,14 @@ async function raiseView(linkStr: string) {
         const r = await raise(link, p, ghost(), (s) => ($("#status").textContent = s + "…"));
         addCoin(r.utxo); refreshChip();
         const mine = drops().find((d) => d.linkStr === linkStr); if (mine) saveDrop({ ...mine, status: "raised" });
-        $("#side").innerHTML = `<div class="eyebrow">Raised</div><h2>It's yours now</h2><p class="lede" style="font-size:17px">${fmt(r.utxo.value)} tTARI moved into your ghost as a fresh stealth output (fee ${fmt(r.fee)}). What the chain learned: one leaf of the condition tree was used, signed by a one-time key nobody can tie to you.</p><div class="cta"><a class="btn ghost" href="#/xray/${link.commitment}">X-ray the empty grave</a><a class="btn primary" href="#/bury">Bury one back</a></div>`;
+        $("#side").innerHTML = `<div class="eyebrow">Raised</div><h1 class="pg">It's yours now</h1><p class="lede" style="font-size:17px">${fmt(r.utxo.value)} tTARI moved into your ghost as a fresh stealth output (fee ${fmt(r.fee)}). What the chain learned: one leaf of the condition tree was used, signed by a one-time key nobody can tie to you.</p><div class="cta"><a class="btn ghost" href="#/xray/${link.commitment}">X-ray the empty grave</a><a class="btn primary" href="#/bury">Bury one back</a></div>`;
       } catch (err) { b.disabled = false; toast((err as Error).message, 7000); $("#status").textContent = ""; }
     });
   });
 }
 
 async function graveyardView() {
-  app.innerHTML = `<div class="eyebrow">Public graves</div><h2>The graveyard</h2><p class="lede">Riddles carved by strangers. Each guards a hidden offering and a secret. Answer one and it's yours.</p><div class="graves" id="graves"><p class="status">reading the stones…</p></div>`;
+  app.innerHTML = `<div class="eyebrow">Public graves</div><h1 class="pg">The graveyard</h1><p class="lede">Riddles carved by strangers. Each guards a hidden offering and a secret. Answer one and it's yours.</p><div class="graves" id="graves"><p class="status">reading the stones…</p></div>`;
   if (!DEPLOYMENT.template) { $("#graves").innerHTML = `<p class="hint">The crypt isn't open on this network yet.</p>`; return; }
   const [graves, epoch] = await Promise.all([listGraves(DEPLOYMENT.crypt), currentEpoch()]);
   if (!graves.length) { $("#graves").innerHTML = `<p class="hint">No graves yet. <a href="#/bury">Dig the first one.</a></p>`; return; }
@@ -256,9 +256,9 @@ async function graveyardView() {
 async function xrayView(commitment?: string) {
   const known = drops();
   const pick = commitment ?? (known[0] ? decodeLink(known[0].linkStr).commitment : "");
-  app.innerHTML = `<div class="eyebrow">Two readings of one output</div><h2>X-ray</h2><p class="lede">Left: the drop exactly as the public indexer returns it. Right: what someone holding the answer sees.</p>
+  app.innerHTML = `<div class="eyebrow">Two readings of one output</div><h1 class="pg">X-ray</h1><p class="lede">Left: the drop exactly as the public indexer returns it. Right: what someone holding the answer sees.</p>
     <form id="xf" class="linkbox" style="margin:18px 0"><input id="cx" placeholder="drop commitment (64 hex) or a drop link" value="${esc(pick)}" /><button class="btn ghost">Read</button></form>
-    <div class="split"><div><h3>What the chain sees</h3><div class="xray" id="raw">—</div></div><div><h3>What the answer sees</h3><div class="seen" id="seen"><p class="hint">Open a drop you buried (or raise one) to see its plaintext here. Everything on this side is computed in your browser.</p></div></div></div>`;
+    <div class="split"><div><h2 class="h3">What the chain sees</h2><div class="xray" id="raw">—</div></div><div><h2 class="h3">What the answer sees</h2><div class="seen" id="seen"><p class="hint">Open a drop you buried (or raise one) to see its plaintext here. Everything on this side is computed in your browser.</p></div></div></div>`;
   $("#xf").addEventListener("submit", (e) => { e.preventDefault(); let v = $<HTMLInputElement>("#cx").value.trim(); if (v.includes("#/d/")) v = decodeLink(v.split("#/d/")[1]).commitment; location.hash = `#/xray/${v}`; });
   if (!/^[0-9a-f]{64}$/.test(pick)) return;
   const raw = await getUtxoRaw(pick).catch(() => null);
@@ -286,8 +286,8 @@ async function xrayView(commitment?: string) {
 
 async function mineView() {
   const list = drops(); const epoch = await currentEpoch().catch(() => 0);
-  app.innerHTML = `<div class="eyebrow">Kept in this browser only</div><h2>My drops</h2>${list.length ? "" : `<p class="lede">Nothing buried yet. <a href="#/bury">Dig your first grave.</a></p>`}
-  <table class="my"><thead><tr><th>Riddle</th><th>Offering</th><th>Returns at</th><th>Status</th><th></th></tr></thead><tbody>
+  app.innerHTML = `<div class="eyebrow">Kept in this browser only</div><h1 class="pg">My drops</h1>${list.length ? "" : `<p class="lede">Nothing buried yet. <a href="#/bury">Dig your first grave.</a></p>`}
+  <table class="my"><thead><tr><th>Riddle</th><th>Offering</th><th>Returns at</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead><tbody>
   ${list.map((d, i) => `<tr><td>“${esc(d.riddle)}”</td><td>${fmt(BigInt(d.amount))}</td><td>epoch ${d.returnsAt}</td><td><span class="pill ${d.status === "buried" ? "sealed" : d.status}" data-i="${i}">${d.status}</span></td><td><a href="#/buried/${encodeURIComponent(d.linkStr)}">link</a> · <a href="#/xray/${decodeLink(d.linkStr).commitment}">x-ray</a>${d.status === "buried" && epoch > d.returnsAt ? ` · <button class="btn ghost" data-ret="${i}" style="padding:6px 10px">Take it back</button>` : ""}</td></tr>`).join("")}
   </tbody></table><p class="hint">Current epoch: ${epoch}. A drop can be taken back once the current epoch is past its return epoch (the network enforces <code>AfterEpoch</code> strictly).</p>`;
   for (const d of list.filter((d) => d.status === "buried")) {
@@ -310,12 +310,12 @@ async function mineView() {
 
 function ghostView() {
   const g = ghost();
-  app.innerHTML = `<div class="split"><div class="panel"><div class="eyebrow">Your ghost</div><h2>${fmt(balance())} tTARI</h2>
+  app.innerHTML = `<div class="split"><div class="panel"><div class="eyebrow">Your ghost</div><h1 class="pg">${fmt(balance())} tTARI</h1>
   <p class="lede" style="font-size:17px">A throwaway stealth wallet that lives only in this browser. Every coin it holds is a separate stealth output with a one-time owner key.</p>
-  <label>Stealth address</label><input readonly value="${g.address}" />
+  <label for="gaddr">Stealth address</label><input id="gaddr" readonly value="${g.address}" />
   <div class="cta"><button class="btn primary" id="summon">${icon("flask")} Summon from the crypt</button><button class="btn ghost" id="backup">Back up ghost key</button></div><div class="status" id="status"></div>
   <p class="hint">The crypt hands each summoning a small dose of testnet tTARI, capped per epoch. The public Esmeralda faucet is empty, so this is the fastest way in.</p></div>
-  <div class="panel"><h3>Coins</h3><table class="my"><thead><tr><th>Commitment</th><th>Value</th></tr></thead><tbody>${coins().map((c) => `<tr><td><a href="#/xray/${c.commitment}" style="font-family:var(--mono);font-size:12px">${c.commitment.slice(0, 18)}…</a></td><td>${fmt(c.value)}</td></tr>`).join("") || `<tr><td colspan="2" class="hint">empty</td></tr>`}</tbody></table></div></div>`;
+  <div class="panel"><h2 class="h3">Coins</h2><table class="my"><thead><tr><th>Commitment</th><th>Value</th></tr></thead><tbody>${coins().map((c) => `<tr><td><a href="#/xray/${c.commitment}" style="font-family:var(--mono);font-size:12px">${c.commitment.slice(0, 18)}…</a></td><td>${fmt(c.value)}</td></tr>`).join("") || `<tr><td colspan="2" class="hint">empty</td></tr>`}</tbody></table></div></div>`;
   $("#summon").addEventListener("click", async () => {
     const b = $<HTMLButtonElement>("#summon"); b.disabled = true;
     try { const r = await summon(g, (s) => ($("#status").textContent = s + "…")); addCoin(r.utxo); refreshChip(); toast(`Summoned ${fmt(r.utxo.value)} tTARI.`); ghostView(); }
