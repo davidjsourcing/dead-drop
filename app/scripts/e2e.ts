@@ -80,7 +80,8 @@ async function fund(g: Ghosts, amountT: number) {
   const ups = accept?.up_substates ?? [];
   const mine = await findOwned(ups, [g.bank]);
   expect(mine.length === 1, "walletd funds the bank ghost with a stealth output", { tx: r.transaction_id, value: mine[0]?.utxo.value });
-  setCoins("bank", mine.map((m) => m.utxo));
+  // Keep the bank's existing coins: a fund adds one, it must not replace the list.
+  setCoins("bank", [...(loadCoins().bank ?? []), ...j(mine.map((m) => m.utxo))]);
 }
 
 async function all(g: Ghosts) {

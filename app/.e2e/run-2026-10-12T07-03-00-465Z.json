@@ -1,0 +1,11 @@
+[
+  {
+    "t": "2026-10-12T07:03:00.769Z",
+    "step": "error",
+    "ok": false,
+    "data": {
+      "message": "not enough tTARI to feed that much",
+      "stack": "Error: not enough tTARI to feed that much\n    at build (/home/user/tab/files/bounties-oct9/tari/dead-drop/app/src/core/flows.ts:230:28)\n    at sendWithFee (/home/user/tab/files/bounties-oct9/tari/dead-drop/app/src/core/flows.ts:34:23)\n    at feedCauldron (/home/user/tab/files/bounties-oct9/tari/dead-drop/app/src/core/flows.ts:260:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async feed (/home/user/tab/files/bounties-oct9/tari/dead-drop/app/scripts/e2e.ts:187:13)"
+    }
+  }
+]

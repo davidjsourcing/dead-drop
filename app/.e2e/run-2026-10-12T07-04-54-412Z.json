@@ -1,0 +1,13 @@
+[
+  {
+    "t": "2026-10-12T07:05:56.691Z",
+    "step": "feed: the bank ghost pours stealth tTARI into the cauldron as a revealed bucket",
+    "ok": true,
+    "data": {
+      "tx": "12200c24b3fa1ad6f498efe10cf1ef504bf490673d1cec3b1ed31342845996bc",
+      "fed": 20,
+      "fee": "15317",
+      "change": "5847837"
+    }
+  }
+]
