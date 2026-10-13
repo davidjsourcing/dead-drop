@@ -218,3 +218,42 @@ h1.pg{font-size:clamp(28px,4vw,44px);font-weight:500;font-variation-settings:nor
 .foot{color:#9a92a3}
 h2.h3{font-size:22px}
 p a,.hint a,.foot a,.lede a{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+
+/* ---- Oct 13: hunt page, Midnight Grave, privacy receipt, time lock ---- */
+.hunt.midnight{background:linear-gradient(100deg,rgba(58,22,48,.9),rgba(12,10,16,.9));border:1px solid rgba(194,65,93,.45)}
+.hunt.midnight .k{color:#ff9db2}
+.trail{display:grid;gap:16px;margin-top:26px}
+.step{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:start;background:linear-gradient(180deg,rgba(29,25,34,.85),rgba(20,17,26,.85));border:1px solid rgba(239,231,218,.07);border-radius:var(--r);padding:20px 22px}
+.step .n{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font:500 22px var(--serif);border:1px solid rgba(143,240,192,.4);color:var(--phosphor)}
+.step.raised .n{border-color:rgba(244,184,96,.45);color:var(--candle)}
+.step .ep{font:400 22px/1.25 var(--serif);margin-bottom:8px}
+.step .meta{font:13px var(--sans);color:var(--ash);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.step .cta{display:flex;gap:10px;flex-wrap:wrap}
+.midnight-card{margin-top:14px;padding:clamp(20px,3vw,34px);border-radius:18px;border:1px solid rgba(194,65,93,.45);background:radial-gradient(600px 260px at 85% 0%,rgba(194,65,93,.18),transparent 70%),linear-gradient(180deg,#1a0f19,#0f0b12)}
+.midnight-card h2{font-size:clamp(32px,5vw,54px);margin:4px 0 10px}
+.midnight-card>p{color:var(--bone);max-width:760px}
+.midnight-card code{font:13px var(--mono);color:#ff9db2}
+.clock{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;margin:20px 0}
+.clock div{background:rgba(12,10,16,.9);padding:14px 16px}
+.clock b{display:block;font:500 26px/1.15 var(--serif);font-variant-numeric:tabular-nums;color:var(--bone)}
+.clock span{font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ash)}
+.midnight-card .step{background:rgba(12,10,16,.6)}
+.receipt{margin-top:18px;border-radius:12px;padding:16px;background:#07110d;border:1px solid rgba(143,240,192,.25)}
+.receipt.bad{border-color:var(--blood);background:#1a0a0e}
+.receipt .cap{font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--phosphor);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.receipt .tag{font:500 10px var(--mono);letter-spacing:.06em;text-transform:none;color:var(--ash);border:1px solid var(--stone2);border-radius:999px;padding:1px 8px}
+.receipt table{width:100%;border-collapse:collapse;font:13px var(--sans)}
+.receipt td{padding:7px 6px;border-top:1px solid rgba(143,240,192,.1);vertical-align:top}
+.receipt td:first-child{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#5fbf93;white-space:nowrap}
+.receipt td.pl{color:var(--bone);word-break:break-word}
+.receipt td.safe{color:var(--phosphor);white-space:nowrap;text-align:right}
+.receipt td.safe::before{content:"✓ "}
+.receipt td.leak{color:#ff9db2;white-space:nowrap;text-align:right;font-weight:600}
+.lock{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(194,65,93,.45);background:rgba(58,22,48,.35);font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.lock.open{border-color:rgba(143,240,192,.4);background:rgba(10,40,28,.4)}
+.refusal{margin-top:12px;padding:14px;border-radius:12px;border:1px solid var(--blood);background:#1a0a0e;font-size:14px;line-height:1.55}
+.refusal code{display:block;margin:8px 0;font:12.5px/1.5 var(--mono);color:#ff9db2;word-break:break-word}
+@media (max-width:760px){.clock{grid-template-columns:repeat(2,1fr)}.step{grid-template-columns:1fr}.receipt td.safe,.receipt td.leak{white-space:normal}}
+.receipt td.pl{max-width:0;width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status .refusal,.refusal{font-family:var(--sans);color:var(--bone)}
+.refusal b{color:#ff9db2}

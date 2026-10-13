@@ -121,3 +121,34 @@ describe("the sealed letter", () => {
     expect(onChain).not.toContain("3000000");
   });
 });
+
+// ---- proof helpers (added Oct 13) ----
+import { privacyAudit, substateUrl, lockState, epochEta } from "../src/core/proof";
+describe("privacy audit", () => {
+  const raw = { substate: { Utxo: { output: { output: { public_nonce: "e2bb", encrypted_data: "a21ed1548f7efa94" } } } } };
+  it("finds nothing private in a stealth output", () => {
+    const c = privacyAudit(raw, { amount: 1_000_000n, secret: "meet at the oak", answer: "a clock", keys: [{ label: "Sender", hex: "deadbeefcafebabe" }] });
+    expect(c.map((x) => x.found)).toEqual([false, false, false, false]);
+  });
+  it("catches a leak in any encoding", () => {
+    const secret = "meet at the oak";
+    const hexed = Buffer.from(secret).toString("hex");
+    expect(privacyAudit({ memo: hexed }, { secret })[0].found).toBe(true);
+    expect(privacyAudit({ memo: secret.toUpperCase() }, { secret })[0].found).toBe(true);
+    expect(privacyAudit({ value: 1000000 }, { amount: 1_000_000n })[0].found).toBe(true);
+    expect(privacyAudit({ v: "40420f0000000000" }, { amount: 1_000_000n })[0].found).toBe(true);
+  });
+  it("builds the public indexer URL", () => {
+    expect(substateUrl("ab".repeat(32))).toBe("https://ootle-indexer-a.tari.com/substates/utxo_" + "01".repeat(32) + "_" + "ab".repeat(32));
+  });
+  it("AfterEpoch is strict: a lock at N opens only at N+1", () => {
+    expect(lockState(100, 100).open).toBe(false);
+    expect(lockState(100, 100).epochsLeft).toBe(1);
+    expect(lockState(100, 101).open).toBe(true);
+    expect(lockState(100, 55, 32).text).toMatch(/46 epochs.*1 d 0 h/);
+  });
+  it("estimates a future epoch's time", () => {
+    const t0 = new Date("2026-10-13T15:00:00Z");
+    expect(epochEta(110, 100, t0, 30).toISOString()).toBe("2026-10-13T20:00:00.000Z");
+  });
+});

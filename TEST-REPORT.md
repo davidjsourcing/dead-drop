@@ -73,6 +73,15 @@ Screenshots: `app/.e2e/ui-live/`. The bury took 131 s (summon from the crypt, th
 6. **Mobile had no navigation** (the nav was hidden under 820 px); it's now a scrollable row.
 7. Accessibility: low-contrast hint and footer text, no `h1` on inner pages, an unlabeled input, an empty table header, links distinguished only by colour, skipped heading levels. All fixed; axe reports 0.
 
+## Oct 13 additions: Midnight Grave, privacy receipt, hunt page
+
+- **Indexer upgrade check.** The public indexer now reports v0.46.0 (was 0.45 on Oct 12). Chain reads (epoch, graves, crypt stats, cauldron balance 31 tTARI) still work with the app's 0.45 WASM SDK, and so do bury, post-grave and dry-run raise (below).
+- **Midnight Grave seeded** (`scripts/midnight.ts`, epoch 12222, 15:18 UTC): 1 tTARI drop with an `AfterEpoch(13031)` raise condition and return after 13660, posted as public grave #8. Bury tx `a8399084e0a263bfd30c5339b32346d915b7c3b2f4e0e1b7bf9db5a31e4f3efa`, grave tx `5f235693ba5e3e49e4a562c667b44412391e31e9b3538d884f18f6b40626af21`.
+- **The lock holds.** Straight after seeding, the script opened the drop with the right answer (the memo decrypted) and tried to raise it into a fresh key. The network refused at the dry run: `the network would reject this: {"ExecutionFailure":{"code":"InvalidProof","message":"At instruction #1: Spend condition not met: builtin predicate not satisfied: AfterEpoch(13031)"}}`. Nothing was spent.
+- **Unit tests: 20/20** (5 new: the privacy audit finds nothing in a real stealth output and does catch a leaked amount or secret in decimal, hex, upper-case and byte-array form; the indexer URL; `AfterEpoch` strictness in the countdown; epoch time estimate).
+- **Browser run, local build and then the deployed site** (`scripts/ui-oct13.cjs`, real Chromium, live testnet): **8/8 both times.** Hunt page lists the 3 steps and the finale; the Midnight Grave reads SEALED from the chain; the raise page shows the time-lock line; the right answer prints a privacy receipt with 5 rows, all "not in public data"; clicking Raise shows the validators' refusal `AfterEpoch(13031)`; X-ray with an answer prints a clean 3-row receipt; the hunt page has no horizontal overflow at 390 px; no page errors.
+- **Fix:** epoch labels assumed 60-minute epochs. Measured: epoch 12161 at Oct 12 06:28 UTC, 12222 at Oct 13 15:10 UTC, so about 32 minutes on average (epochs are irregular: 12222 lasted more than 25 minutes on Oct 13). Labels now use 32 and say "≈".
+
 ## What is not tested (honest gaps)
 - Weak answers can be brute-forced offline (scrypt N=2^15 slows this down but doesn't stop it). That is by design and stated in the README.
 - The witching-hour window was tested at the epoch it opened and outside it, not across a full 24-epoch cycle.

@@ -1,10 +1,11 @@
 import "./styles.css";
 import qrcode from "qrcode-generator";
-import { DEPLOYMENT, MICRO, HUNT_START_GRAVE } from "./core/net";
+import { DEPLOYMENT, MICRO, HUNT_START_GRAVE, HUNT_GRAVES, MIDNIGHT_GRAVE } from "./core/net";
+import { privacyAudit, substateUrl, componentUrl, lockState, epochEta, type AuditCheck } from "./core/proof";
 import { ghost, coins, addCoin, removeCoins, balance, pickCoins, drops, saveDrop, exportGhost, type MyDrop } from "./core/ghost";
 import { decodeLink, encodeLink, type DropLink } from "./core/link";
 import { bury, peek, raise, returnDrop, summon, postGrave, type Peek } from "./core/flows";
-import { currentEpoch, getUtxoRaw, listGraves, cryptStats, cauldronBalance } from "./core/chain";
+import { currentEpoch, getUtxoRaw, listGraves, cryptStats, cauldronBalance, type Grave } from "./core/chain";
 import { EPOCH_MINUTES } from "./core/time";
 import { icon } from "./icons";
 
@@ -16,6 +17,23 @@ const human = (epochs: number) => { const m = epochs * EPOCH_MINUTES; return m <
 function toast(msg: string, ms = 3200) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), ms); }
 const baseUrl = () => location.href.split("#")[0];
 const dropUrl = (linkStr: string) => `${baseUrl()}#/d/${linkStr}`;
+const hexOf = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+const when = (d: Date) => d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+
+/** The privacy receipt: every private fact, searched for in the raw public data, in the reader's own browser. */
+function receipt(checks: AuditCheck[], commitment: string) {
+  const ok = checks.every((c) => !c.found);
+  return `<div class="receipt ${ok ? "ok" : "bad"}" id="receipt"><div class="cap">${icon("eye", 16)} Privacy receipt <span class="tag">computed in your browser</span></div>
+    <p class="hint" style="margin:6px 0 10px">Your browser just fetched this drop's raw public data from the Tari indexer and searched it for everything the answer revealed.</p>
+    <table><tbody>${checks.map((c) => `<tr><td>${esc(c.label)}</td><td class="pl">${esc(c.plain.length > 46 ? c.plain.slice(0, 46) + "…" : c.plain)}</td><td class="${c.found ? "leak" : "safe"}">${c.found ? "FOUND in public data" : "not in public data"}</td></tr>`).join("")}</tbody></table>
+    <p class="hint" style="margin-top:10px">Searched as ${esc(checks[0]?.searched ?? "")}, and more. Check it yourself: <a href="${substateUrl(commitment)}" target="_blank" rel="noopener">raw substate on the public indexer ↗</a></p></div>`;
+}
+function stoneLock(link: DropLink, epoch: number) {
+  if (!link.opensAt) return "";
+  const s = lockState(link.opensAt, epoch);
+  return s.open ? `<div class="lock open">${icon("hourglass", 16)} Time lock: <b>open</b>. Epoch ${epoch} is past ${link.opensAt}, so the validators now accept a raise.</div>`
+    : `<div class="lock">${icon("hourglass", 16)} Time lock: the validators refuse any raise until epoch ${link.opensAt} has passed. Now: epoch ${epoch}, ${esc(s.text)}, around ${esc(when(epochEta(link.opensAt + 1, epoch)))}.</div>`;
+}
 
 // --------------------------------------------------------------------------------------------- ghost chip
 function refreshChip() {
@@ -52,7 +70,8 @@ function home() {
       <div class="candles"><span></span><span></span><span></span></div></div>
   </div>
   <div class="stats" id="stats" aria-live="polite"><div><b>…</b><span>graves dug</span></div><div><b>…</b><span>ghosts summoned</span></div><div><b>…</b><span>tTARI in the cauldron</span></div><div><b>live</b><span>on Esmeralda testnet</span></div></div>
-  <a class="hunt" href="#/graveyard"><span class="k">The Halloween hunt</span><span>Three graves. Each secret names the next. Start at grave #${HUNT_START_GRAVE} →</span></a>
+  <a class="hunt" href="#/hunt"><span class="k">The Halloween hunt</span><span>Three graves. Each secret names the next. Start at grave #${HUNT_START_GRAVE} →</span></a>
+  <a class="hunt midnight" href="#/hunt"><span class="k">The Midnight Grave</span><span>Its answer is printed on the stone. Only time can open it: the validators refuse every raise until Halloween →</span></a>
   <section>
     <div class="eyebrow">Six spells, one output</div>
     <h2>How the dead keep secrets</h2>
@@ -66,7 +85,7 @@ function home() {
     </div>
   </section>
   <section class="split">
-    <div><div class="eyebrow">Don't trust us — look</div><h2>X-ray any drop</h2><p class="lede">See exactly what the chain stores next to what the answer reveals. It's the same output, read twice.</p><a class="btn ghost" href="#/xray">Open the X-ray</a></div>
+    <div><div class="eyebrow">Don't trust us — look</div><h2>X-ray any drop</h2><p class="lede">See exactly what the chain stores next to what the answer reveals. It's the same output, read twice. Then your browser searches the raw public data for every private fact and prints a privacy receipt.</p><a class="btn ghost" href="#/xray">Open the X-ray</a></div>
     <ol class="steps panel">
       <li><span><b>Bury.</b> Write a secret, pick an offering, set a riddle. Your browser builds the stealth output and the condition tree.</span></li>
       <li><span><b>Share the link.</b> It holds only public parameters. The answer never leaves your head.</span></li>
@@ -195,17 +214,19 @@ async function raiseView(linkStr: string) {
       <h1 class="pg">Speak the answer</h1>
       <p class="lede" style="font-size:17px">Its weight is hidden and its owner unnamed. Answer the riddle on the stone: if you're right, your browser can read what's inside. Nothing is sent until you choose to raise it.</p>
       <form id="ans" autocomplete="off"><label for="answer">Your answer</label><input id="answer" required autofocus placeholder="…" /><div class="cta"><button class="btn primary" id="speak">${icon("candle")} Speak</button></div></form>
-      <div class="status" id="status"></div>
+      <div class="status" id="status"></div><div id="lockline"></div>
       <p class="hint">Terms carved on the stone: ${link.opensAt ? `opens after epoch ${link.opensAt} · ` : ""}${link.witching ? `witching hour every ${link.witching.period} epochs · ` : ""}returns to its sender at epoch ${link.returnsAt}. <a href="#/xray/${link.commitment}">X-ray →</a></p>
     </div>
   </div>`;
   const live = await getUtxoRaw(link.commitment).catch(() => null);
+  if (link.opensAt) currentEpoch().then((ep) => { const l = document.getElementById("lockline"); if (l) l.innerHTML = stoneLock(link, ep); }).catch(() => {});
   if (!live) { $("#side").innerHTML = `<div class="eyebrow">Empty grave</div><h1 class="pg">Someone got here first</h1><p class="lede" style="font-size:17px">This drop has already been raised or returned. The chain shows the output is spent — and nothing about who spent it.</p><a class="btn ghost" href="#/xray/${link.commitment}">See what the chain kept</a>`; return; }
   $("#ans").addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = $("#status"); const btn = $<HTMLButtonElement>("#speak"); btn.disabled = true;
     status.textContent = "the stone listens…";
-    const p: Peek = await peek(link, $<HTMLInputElement>("#answer").value);
+    const spoken = $<HTMLInputElement>("#answer").value;
+    const p: Peek = await peek(link, spoken);
     btn.disabled = false;
     if (p.state === "gone") { status.textContent = "the grave is already empty."; return; }
     if (p.state === "wrong") { status.textContent = "the dead do not answer to that name."; $("#stone").classList.remove("wrong"); void $("#stone").offsetWidth; $("#stone").classList.add("wrong"); return; }
@@ -224,7 +245,10 @@ async function raiseView(linkStr: string) {
           <div class="secret" id="sec" data-final="${esc(p.secret)}"></div></div>
       </div>
       <p class="hint">Decrypted here, in your browser, with the key your answer derives. Nothing was sent. The chain still holds only the left column.</p>
+      ${receipt(privacyAudit(live, { amount: p.value, secret: p.secret, answer: spoken, keys: [{ label: "Your ghost's key", hex: hexOf(ghost().ownerPublic) }, { label: "Your ghost's view key", hex: hexOf(ghost().viewPublic) }] }), link.commitment)}
+      <div id="lockline2"></div>
       <div class="cta"><button class="btn primary" id="raise">${icon("urn")} Raise it into my ghost</button></div><div class="status" id="status"></div>`;
+    if (link.opensAt) currentEpoch().then((ep) => { $("#lockline2").innerHTML = stoneLock(link, ep) + (lockState(link.opensAt!, ep).open ? "" : `<p class="hint">Go on, try to raise it anyway. Your browser will ask the network, and you'll see the validators' own refusal.</p>`); }).catch(() => {});
     decipher($("#amt"), 900); decipher($("#sec"), 1600);
     $("#raise").addEventListener("click", async () => {
       const b = $<HTMLButtonElement>("#raise"); b.disabled = true;
@@ -233,7 +257,12 @@ async function raiseView(linkStr: string) {
         addCoin(r.utxo); refreshChip();
         const mine = drops().find((d) => d.linkStr === linkStr); if (mine) saveDrop({ ...mine, status: "raised" });
         $("#side").innerHTML = `<div class="eyebrow">Raised</div><h1 class="pg">It's yours now</h1><p class="lede" style="font-size:17px">${fmt(r.utxo.value)} tTARI moved into your ghost as a fresh stealth output (fee ${fmt(r.fee)}). What the chain learned: one leaf of the condition tree was used, signed by a one-time key nobody can tie to you.</p><div class="cta"><a class="btn ghost" href="#/xray/${link.commitment}">X-ray the empty grave</a><a class="btn primary" href="#/bury">Bury one back</a></div>`;
-      } catch (err) { b.disabled = false; toast((err as Error).message, 7000); $("#status").textContent = ""; }
+      } catch (err) {
+        b.disabled = false; const msg = (err as Error).message;
+        const m = /AfterEpoch\((\d+)\)/.exec(msg);
+        if (m) $("#status").innerHTML = `<div class="refusal"><b>The network said no.</b> Nothing moved, nothing was spent: your browser asked the validators first, and they answered<code>${esc((/Spend condition not met[^"]*/.exec(msg) ?? [msg.slice(0, 160)])[0])}</code>That's the time lock working. Come back after epoch ${m[1]}.</div>`;
+        else { toast(msg, 7000); $("#status").textContent = ""; }
+      }
     });
   });
 }
@@ -250,7 +279,34 @@ async function graveyardView() {
   }));
   $("#graves").innerHTML = cards.join("");
   const start = graves.find((g) => g.id === HUNT_START_GRAVE);
-  if (start) $("#graves").insertAdjacentHTML("beforebegin", `<a class="hunt" href="#/d/${encodeURIComponent(start.link)}"><span class="k">The Halloween hunt</span><span>Three graves, chained: each secret names the next. Start at grave #${start.id} →</span></a>`);
+  if (start) $("#graves").insertAdjacentHTML("beforebegin", `<a class="hunt" href="#/hunt"><span class="k">The Halloween hunt</span><span>Three graves, chained: each secret names the next. Start at grave #${start.id} →</span></a>`);
+}
+
+async function huntView() {
+  app.innerHTML = `<div class="eyebrow">Live on Esmeralda · state read from the chain just now</div><h1 class="pg">The Halloween hunt</h1>
+  <p class="lede">Three graves, chained: each secret names the next. Then the finale, a grave whose answer is printed for everyone, and whose lock is time itself.</p>
+  <div class="trail" id="trail"><p class="status">reading the stones…</p></div>`;
+  const [graves, epoch] = await Promise.all([listGraves(DEPLOYMENT.crypt), currentEpoch()]);
+  const byId = new Map<number, Grave>(graves.map((g) => [g.id, g]));
+  const step = async (g: Grave | undefined, label: string, extra = "") => {
+    if (!g) return `<div class="step missing"><div class="n">${label}</div><p class="hint">This grave has rotated out of the crypt's recent list.</p></div>`;
+    const live = await getUtxoRaw(g.commitment).catch(() => null);
+    return `<div class="step ${live ? "sealed" : "raised"}"><div class="n">${label}</div><div class="body"><div class="ep">“${esc(g.epitaph)}”</div>
+      <div class="meta"><span class="pill ${live ? "sealed" : "raised"}">${live ? "SEALED" : "RAISED"}</span> grave #${g.id} · ${live ? "still in the ground" : "raised by someone. The chain records that it was spent, not by whom or for how much"}</div>${extra}
+      <div class="cta" style="margin-top:12px">${live ? `<a class="btn primary" href="#/d/${encodeURIComponent(g.link)}">${icon("candle")} Answer it</a>` : ""}<a class="btn ghost" href="#/xray/${g.commitment}">X-ray</a><a class="btn ghost" href="${substateUrl(g.commitment)}" target="_blank" rel="noopener">Raw on the indexer ↗</a></div></div></div>`;
+  };
+  const steps = await Promise.all(HUNT_GRAVES.map((id, i) => step(byId.get(id), `${i + 1}`, i === 0 ? `<p class="hint">Start here. The riddle is the only clue.</p>` : `<p class="hint">Its number is inside the secret of step ${i}.</p>`)));
+  const mg = byId.get(MIDNIGHT_GRAVE);
+  let finale = "";
+  if (mg) {
+    const l = decodeLink(mg.link);
+    const s = lockState(l.opensAt ?? 0, epoch);
+    finale = `<div class="midnight-card"><div class="eyebrow">Finale · grave #${mg.id}</div><h2>The Midnight Grave</h2>
+      <p>The answer is no secret: it's carved on the stone. Anyone can read the letter inside. But the tTARI underneath sits behind an <code>AfterEpoch(${l.opensAt})</code> leaf, and no key, not even ours, can raise it before the validators say the hour has come. First ghost to raise it after the bell keeps it.</p>
+      <div class="clock"><div><b id="ep">${epoch}</b><span>epoch now</span></div><div><b>${l.opensAt}</b><span>lock lifts after</span></div><div><b>${s.open ? "OPEN" : s.epochsLeft}</b><span>${s.open ? "raise it now" : "epochs to go"}</span></div><div><b>${esc(when(epochEta((l.opensAt ?? 0) + 1, epoch)).replace(/,? \d{1,2}:\d{2}.*$/, ""))}</b><span>estimated (~32 min epochs)</span></div></div>
+      ${await step(mg, "★")}</div>`;
+  }
+  $("#trail").innerHTML = steps.join("") + finale + `<p class="hint" style="margin-top:22px">Every status on this page was read from the chain when you opened it. The graves themselves live in the crypt component's public state: <a href="${componentUrl(DEPLOYMENT.crypt)}" target="_blank" rel="noopener">see it raw ↗</a></p>`;
 }
 
 async function xrayView(commitment?: string) {
@@ -258,10 +314,25 @@ async function xrayView(commitment?: string) {
   const pick = commitment ?? (known[0] ? decodeLink(known[0].linkStr).commitment : "");
   app.innerHTML = `<div class="eyebrow">Two readings of one output</div><h1 class="pg">X-ray</h1><p class="lede">Left: the drop exactly as the public indexer returns it. Right: what someone holding the answer sees.</p>
     <form id="xf" class="linkbox" style="margin:18px 0"><input id="cx" placeholder="drop commitment (64 hex) or a drop link" value="${esc(pick)}" /><button class="btn ghost">Read</button></form>
-    <div class="split"><div><h2 class="h3">What the chain sees</h2><div class="xray" id="raw">—</div></div><div><h2 class="h3">What the answer sees</h2><div class="seen" id="seen"><p class="hint">Open a drop you buried (or raise one) to see its plaintext here. Everything on this side is computed in your browser.</p></div></div></div>`;
+    <div class="split"><div><h2 class="h3">What the chain sees</h2><div class="xray" id="raw">—</div><p class="hint" id="verify"></p></div><div><h2 class="h3">What the answer sees</h2><div class="seen" id="seen"><p class="hint">Know the answer? Speak it here and your browser decrypts the right-hand side. Nothing is sent.</p><form id="xa" class="linkbox" style="margin-top:12px"><input id="xans" placeholder="the answer" autocomplete="off" /><button class="btn ghost">Read it</button></form><div class="status" id="xst"></div></div><div id="xr"></div></div></div>`;
   $("#xf").addEventListener("submit", (e) => { e.preventDefault(); let v = $<HTMLInputElement>("#cx").value.trim(); if (v.includes("#/d/")) v = decodeLink(v.split("#/d/")[1]).commitment; location.hash = `#/xray/${v}`; });
   if (!/^[0-9a-f]{64}$/.test(pick)) return;
+  $("#verify").innerHTML = `Don't take our word for it: <a href="${substateUrl(pick)}" target="_blank" rel="noopener">open this exact output on the public Tari indexer ↗</a>`;
   const raw = await getUtxoRaw(pick).catch(() => null);
+  const graveLink = await listGraves(DEPLOYMENT.crypt).then((gs) => gs.find((g) => g.commitment === pick)?.link).catch(() => undefined);
+  $("#xa").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const ans = $<HTMLInputElement>("#xans").value;
+    const linkStr = graveLink ?? known.find((d) => decodeLink(d.linkStr).commitment === pick)?.linkStr;
+    if (!linkStr) { $("#xst").textContent = "This output isn't in the public graveyard; open it from its drop link instead."; return; }
+    if (!raw) { $("#xst").textContent = "This output is spent: the chain no longer holds anything to decrypt."; return; }
+    $("#xst").textContent = "decrypting in your browser…";
+    const p = await peek(decodeLink(linkStr), ans);
+    if (p.state !== "right") { $("#xst").textContent = p.state === "wrong" ? "the dead do not answer to that name." : "the grave is already empty."; return; }
+    $("#xst").textContent = "";
+    $("#seen").innerHTML = `<dl><dt>Amount</dt><dd>${fmt(p.value)} tTARI</dd><dt>Secret</dt><dd>${esc(p.secret)}</dd><dt>Answer</dt><dd><b>${esc(ans)}</b> (never published)</dd></dl>`;
+    $("#xr").innerHTML = receipt(privacyAudit(raw, { amount: p.value, secret: p.secret, answer: ans }), pick);
+  });
   const rawEl = $("#raw");
   if (!raw) { rawEl.innerHTML = `<span class="k">substate</span> utxo_…_${pick.slice(0, 16)}…\n<span class="hid">SPENT</span> — the output is gone. The chain recorded that one leaf of its condition tree was satisfied. It did not record by whom, for how much, or what the secret said.`; }
   else {
@@ -281,6 +352,7 @@ async function xrayView(commitment?: string) {
   if (mine) {
     const link = decodeLink(mine.linkStr);
     $("#seen").innerHTML = `<dl><dt>Amount</dt><dd>${fmt(BigInt(mine.amount))} tTARI</dd><dt>Secret</dt><dd>${esc(mine.secret)}</dd><dt>Riddle / answer</dt><dd>${esc(link.riddle)} → <b>${esc(mine.answer)}</b></dd><dt>Raise leaf</dt><dd>signed by the answer key · before epoch ${link.returnsAt}${link.opensAt ? ` · after epoch ${link.opensAt}` : ""}${link.witching ? " · witching hour (template spend script)" : ""}</dd><dt>Return leaf</dt><dd>after epoch ${link.returnsAt} · signed by your one-time refund key</dd><dt>Status</dt><dd>${raw ? "in the ground" : "spent"}</dd></dl>`;
+    if (raw) $("#xr").innerHTML = receipt(privacyAudit(raw, { amount: BigInt(mine.amount), secret: mine.secret, answer: mine.answer, keys: [{ label: "Your ghost's key", hex: hexOf(ghost().ownerPublic) }] }), pick);
   }
 }
 
@@ -336,6 +408,7 @@ function route() {
   if (view === "d" && arg) return raiseView(decodeURIComponent(arg));
   if (view === "graveyard") return graveyardView();
   if (view === "xray") return xrayView(arg);
+  if (view === "hunt") return huntView();
   if (view === "mine") return mineView();
   if (view === "ghost") return ghostView();
   home();

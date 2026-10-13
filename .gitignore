@@ -10,3 +10,5 @@ app/.e2e/hunt.json
 app/.e2e/drops.json
 app/.e2e/deployment.json
 app/.e2e/hunt-graves.json
+app/.e2e/midnight.json
+app/.e2e/midnight.log

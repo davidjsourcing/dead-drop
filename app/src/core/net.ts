@@ -21,3 +21,7 @@ export const DEPLOYMENT = {
 
 /** The Halloween hunt starts at this grave in the crypt's graveyard (each secret names the next grave). */
 export const HUNT_START_GRAVE = 4;
+/** The hunt in order (each secret names the next grave). */
+export const HUNT_GRAVES = [4, 3, 2];
+/** The Midnight Grave: answer printed on the stone, raise refused by the validators until after its AfterEpoch (seeded Oct 13 by scripts/midnight.ts). */
+export const MIDNIGHT_GRAVE = 8;
