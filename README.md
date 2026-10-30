@@ -5,7 +5,7 @@
 Dead Drop hides a message *and* some tTARI inside a single stealth output on the Tari Ootle. Nobody watching the chain can see how much is in it, who it's for, or what it says. You share a link with a riddle on it. Whoever answers the riddle can read the secret in their browser and raise the tTARI into their own wallet. If nobody answers in time, it comes back to you.
 
 - **Play it:** https://dead-drop.sites.tab.bot/ (Esmeralda testnet, nothing to install; the crypt gives your browser ghost its first tTARI)
-- **Watch it (1:55):** {{VIDEO_URL}}
+- **Watch it (2:30):** https://dead-drop.sites.tab.bot/dead-drop-demo.mp4
 - **Template on Esmeralda:** `57d02c26b94121ce11a8ad9b93e9ac19e8acea190b5d12f16a6e420e41c25bd7` · **Crypt component:** `component_2ef70ea3131676f968c035d6162f4d1dfd5894d1dfae4fd700d3e2a2f669d479`
 - **Tests:** 14 template engine tests, 20 unit tests, 23 live Esmeralda checks + 8 live browser checks of the Oct 13 features; see [TEST-REPORT.md](TEST-REPORT.md)
 - Built for the Tari October 2026 build contest, "Spooky Secrets". MIT licensed.
@@ -25,7 +25,7 @@ The **X-ray** page reads any drop twice: once exactly as the public indexer retu
 ## Don't trust us: check (added Oct 13)
 
 - **Privacy receipt.** After you answer a riddle (or in the X-ray), your browser fetches the drop's raw substate from the public Tari indexer and searches it for every private fact the answer revealed: the amount (decimal, little-endian hex, byte array), the secret and the answer (plain text, hex, base64, byte array) and your ghost's keys. Each row prints "not in public data" or "FOUND". A link opens the same raw substate on the indexer so you can check by eye. The check is code in `src/core/proof.ts`, with unit tests that prove it does catch a leak in each encoding.
-- **The Midnight Grave (grave #8): a timed reveal enforced by the validators.** Its answer is printed on the stone ("midnight"), so anyone can read the letter inside. The 1 tTARI under it sits behind an `AfterEpoch(13031)` leaf, so no key, not even ours, can raise it before the network passes epoch 13031 (around Halloween at the measured ~32-minute epoch; the exact time depends on the network). Try to raise it early and the site shows the validators' own refusal: `Spend condition not met: builtin predicate not satisfied: AfterEpoch(13031)`. Nothing is spent: the browser asks with a dry run first. First ghost to raise it after the bell keeps it.
+- **The Midnight Grave (grave #8): a timed reveal enforced by the validators.** Its answer is printed on the stone ("midnight"), so anyone can read the letter inside. The 1 tTARI under it sits behind an `AfterEpoch(13031)` leaf, so no key, not even ours, can raise it before the network passes epoch 13031 (I aimed it at Halloween from a short ~32-minute epoch sample; measured over Oct 13–30 epochs run ~48 minutes, so the bell now lands in early November; the exact time depends on the network). Try to raise it early and the site shows the validators' own refusal: `Spend condition not met: builtin predicate not satisfied: AfterEpoch(13031)`. Nothing is spent: the browser asks with a dry run first. First ghost to raise it after the bell keeps it.
 - **The hunt page** (`#/hunt`) reads the state of the three chained hunt graves and the Midnight Grave from the chain each time it opens (sealed or raised; the chain records that a grave was raised, never by whom), with links to each raw substate and to the crypt component.
 
 ## How it works

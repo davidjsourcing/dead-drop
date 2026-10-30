@@ -71,7 +71,7 @@ function home() {
   </div>
   <div class="stats" id="stats" aria-live="polite"><div><b>…</b><span>graves dug</span></div><div><b>…</b><span>ghosts summoned</span></div><div><b>…</b><span>tTARI in the cauldron</span></div><div><b>live</b><span>on Esmeralda testnet</span></div></div>
   <a class="hunt" href="#/hunt"><span class="k">The Halloween hunt</span><span>Three graves. Each secret names the next. Start at grave #${HUNT_START_GRAVE} →</span></a>
-  <a class="hunt midnight" href="#/hunt"><span class="k">The Midnight Grave</span><span>Its answer is printed on the stone. Only time can open it: the validators refuse every raise until Halloween →</span></a>
+  <a class="hunt midnight" href="#/hunt"><span class="k">The Midnight Grave</span><span>Its answer is printed on the stone. Only time can open it: the validators refuse every raise until epoch 13031 (early November) →</span></a>
   <section>
     <div class="eyebrow">Six spells, one output</div>
     <h2>How the dead keep secrets</h2>
@@ -303,7 +303,7 @@ async function huntView() {
     const s = lockState(l.opensAt ?? 0, epoch);
     finale = `<div class="midnight-card"><div class="eyebrow">Finale · grave #${mg.id}</div><h2>The Midnight Grave</h2>
       <p>The answer is no secret: it's carved on the stone. Anyone can read the letter inside. But the tTARI underneath sits behind an <code>AfterEpoch(${l.opensAt})</code> leaf, and no key, not even ours, can raise it before the validators say the hour has come. First ghost to raise it after the bell keeps it.</p>
-      <div class="clock"><div><b id="ep">${epoch}</b><span>epoch now</span></div><div><b>${l.opensAt}</b><span>lock lifts after</span></div><div><b>${s.open ? "OPEN" : s.epochsLeft}</b><span>${s.open ? "raise it now" : "epochs to go"}</span></div><div><b>${esc(when(epochEta((l.opensAt ?? 0) + 1, epoch)).replace(/,? \d{1,2}:\d{2}.*$/, ""))}</b><span>estimated (~32 min epochs)</span></div></div>
+      <div class="clock"><div><b id="ep">${epoch}</b><span>epoch now</span></div><div><b>${l.opensAt}</b><span>lock lifts after</span></div><div><b>${s.open ? "OPEN" : s.epochsLeft}</b><span>${s.open ? "raise it now" : "epochs to go"}</span></div><div><b>${esc(when(epochEta((l.opensAt ?? 0) + 1, epoch)).replace(/,? \d{1,2}:\d{2}.*$/, ""))}</b><span>estimated (~48 min epochs, measured)</span></div></div>
       ${await step(mg, "★")}</div>`;
   }
   $("#trail").innerHTML = steps.join("") + finale + `<p class="hint" style="margin-top:22px">Every status on this page was read from the chain when you opened it. The graves themselves live in the crypt component's public state: <a href="${componentUrl(DEPLOYMENT.crypt)}" target="_blank" rel="noopener">see it raw ↗</a></p>`;
