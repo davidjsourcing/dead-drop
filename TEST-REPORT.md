@@ -97,3 +97,9 @@ cd app && npm run e2e -- all                    # live run (needs a funded bank 
 cd app && npm run e2e -- return                 # after the return epoch has passed
 BASE=https://dead-drop.sites.tab.bot/ node scripts/ui-e2e.cjs   # live browser run
 ```
+
+
+## Oct 30 2026 re-check (submit day)
+- **Indexer v0.47 changed its response shape** (the substate now sits under `state.up`). The app read the old shape, so the graveyard and hunt pages showed no graves and an answered riddle said "the grave is already empty". Fixed in `core/chain.ts` and `core/drop.ts` (accept both shapes; a spent output has no `up`).
+- After the fix: 20/20 unit tests; `ui-e2e.cjs` **7/7** against the live testnet (bury with auto-summon 24 s, wrong answer refused, right answer decrypts, raise 12 s, X-ray shows spent); `ui-oct13.cjs` **8/8** on the deployed site (hunt, Midnight lock, privacy receipt, validators' `AfterEpoch(13031)` refusal, mobile layout, no page errors).
+- **Epoch length re-measured:** epoch 12222 (Oct 13 15:18 UTC) → 12733 (Oct 30 13:05 UTC) = ~48 min per epoch, not ~32. The Midnight Grave therefore opens around Nov 9, not Halloween; labels updated.

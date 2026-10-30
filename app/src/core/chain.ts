@@ -93,8 +93,13 @@ export async function findOwned(ups: Array<[string, any]>, keys: Keypair[]): Pro
 
 export async function getUtxoRaw(commitmentHex: string): Promise<any | null> {
   const p: Provider = await provider();
-  return p.getStealthUtxo(TARI, fromHexStr(commitmentHex));
+  const got: any = await p.getStealthUtxo(TARI, fromHexStr(commitmentHex));
+  // indexer v0.47 (Oct 2026) moved the substate under state.up; a spent output has no `up`.
+  return got == null ? null : got.substate ? got : got.state?.up?.substate ? { ...got, substate: got.state.up.substate } : null;
 }
+
+/** The indexer moved the substate under `state.up` in v0.47 (Oct 2026); accept both shapes. */
+export const subOf = (j: any): any => j?.substate ?? j?.state?.up?.substate;
 
 export interface Grave {
   id: number;
@@ -113,7 +118,7 @@ export async function listGraves(crypt: string): Promise<Grave[]> {
   const r = await fetch(`${INDEXER_URL}/substates/${crypt}`);
   if (!r.ok) throw new Error(`could not read the crypt (${r.status})`);
   const j = await r.json();
-  const state: any[] = j?.substate?.Component?.body?.state ?? [];
+  const state: any[] = subOf(j)?.Component?.body?.state ?? [];
   const list: any[] = state.find((x) => Array.isArray(x) && (x.length === 0 || Array.isArray(x[0]))) ?? [];
   const { decodeLink } = await import("./link");
   const graves: Grave[] = [];
@@ -130,12 +135,12 @@ export async function listGraves(crypt: string): Promise<Grave[]> {
 /** The crypt's public counters: cauldron balance is read from its vault. */
 export async function cryptStats(crypt: string): Promise<{ dose: bigint; cap: bigint; summonings: number; graves: number; fed: bigint }> {
   const j = await (await fetch(`${INDEXER_URL}/substates/${crypt}`)).json();
-  const s: any[] = j?.substate?.Component?.body?.state ?? [];
+  const s: any[] = subOf(j)?.Component?.body?.state ?? [];
   return { dose: BigInt(s[1] ?? 0), cap: BigInt(s[2] ?? 0), summonings: Number(s[5] ?? 0), graves: Number(s[6] ?? 0), fed: BigInt(s[7] ?? 0) };
 }
 
 /** tTARI waiting in the cauldron (µT), read from the crypt's vault. */
 export async function cauldronBalance(vault: string): Promise<bigint> {
   const j = await (await fetch(`${INDEXER_URL}/substates/${vault}`)).json();
-  return BigInt(j?.substate?.Vault?.resource_container?.Stealth?.revealed_amount ?? 0);
+  return BigInt(subOf(j)?.Vault?.resource_container?.Stealth?.revealed_amount ?? 0);
 }

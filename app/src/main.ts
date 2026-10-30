@@ -5,7 +5,7 @@ import { privacyAudit, substateUrl, componentUrl, lockState, epochEta, type Audi
 import { ghost, coins, addCoin, removeCoins, balance, pickCoins, drops, saveDrop, exportGhost, type MyDrop } from "./core/ghost";
 import { decodeLink, encodeLink, type DropLink } from "./core/link";
 import { bury, peek, raise, returnDrop, summon, postGrave, type Peek } from "./core/flows";
-import { currentEpoch, getUtxoRaw, listGraves, cryptStats, cauldronBalance, type Grave } from "./core/chain";
+import { currentEpoch, getUtxoRaw, listGraves, cryptStats, cauldronBalance, subOf, type Grave } from "./core/chain";
 import { EPOCH_MINUTES } from "./core/time";
 import { icon } from "./icons";
 
@@ -230,7 +230,7 @@ async function raiseView(linkStr: string) {
     btn.disabled = false;
     if (p.state === "gone") { status.textContent = "the grave is already empty."; return; }
     if (p.state === "wrong") { status.textContent = "the dead do not answer to that name."; $("#stone").classList.remove("wrong"); void $("#stone").offsetWidth; $("#stone").classList.add("wrong"); return; }
-    const o: any = (live as any)?.substate?.Utxo?.output ?? (live as any)?.substate?.Utxo ?? {};
+    const o: any = subOf(live)?.Utxo?.output ?? subOf(live)?.Utxo ?? {};
     const body: any = o?.output ?? o;
     const cipher = String(body?.encrypted_data ?? "");
     $("#stone").classList.add("glow");
@@ -336,7 +336,7 @@ async function xrayView(commitment?: string) {
   const rawEl = $("#raw");
   if (!raw) { rawEl.innerHTML = `<span class="k">substate</span> utxo_…_${pick.slice(0, 16)}…\n<span class="hid">SPENT</span> — the output is gone. The chain recorded that one leaf of its condition tree was satisfied. It did not record by whom, for how much, or what the secret said.`; }
   else {
-    const out = (raw as any)?.substate?.Utxo?.output ?? (raw as any)?.substate?.Utxo ?? raw;
+    const out = subOf(raw)?.Utxo?.output ?? subOf(raw)?.Utxo ?? raw;
     const o = out?.output ?? out;
     rawEl.innerHTML = [
       `<span class="k">commitment</span>      ${pick}`,

@@ -134,7 +134,9 @@ export interface LiveUtxo {
 /** Fetch a stealth UTXO by commitment; null once it has been spent. */
 export async function readUtxo(provider: Provider, commitmentHex: string): Promise<LiveUtxo | null> {
   const commitment = fromHexStr(commitmentHex);
-  const substate = await provider.getStealthUtxo(TARI, commitment);
+  const got: any = await provider.getStealthUtxo(TARI, commitment);
+  // indexer v0.47 (Oct 2026) moved the substate under state.up; a spent output has no `up`.
+  const substate = got == null ? null : got.substate ? got : got.state?.up?.substate ? { ...got, substate: got.state.up.substate } : null;
   if (substate === null) return null;
   const parsed = parseSubstateUtxo(substate, stealthUtxoSubstateId(TARI, commitment));
   if (parsed === null) return null;
